@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <title th:text="#{order.edit.header}">Edit Order</title>
+</head>
+<body class="d-flex flex-column min-vh-100">
+<header>
+    <div th:insert="~{menunavy::navy}"></div>
+</header>
+<main class="container my-4 flex-grow-1"
+      th:with="locked=${order.approved == true and #authorization.expression('hasRole(''CLIENT'')')}">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <a th:href="@{/orders}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h1 class="h2 mb-0">
+                <span th:text="#{order.edit.header}">Edit Order</span>
+                <span class="text-muted fs-5 ms-2">#<span th:text="${order.id}"></span></span>
+            </h1>
+        </div>
+        <div class="d-flex gap-2" th:unless="${locked}">
+            <a th:href="@{/orders/__${order.id}__/choice-appliance}" class="btn btn-success">
+                <i class="bi bi-plus-circle me-1"></i>
+                <span th:text="#{order.edit.add.appliance}">Add Appliance</span>
+            </a>
+            <a th:href="@{/orders/__${order.id}__/delete}"
+               class="btn btn-outline-danger"
+               th:title="#{order.btn.delete}"
+               onclick="return confirm('Cancel and delete this order?')">
+                <i class="bi bi-trash me-1"></i>
+                <span th:text="#{order.btn.delete}">Cancel Order</span>
+            </a>
+        </div>
+    </div>
+
+    <div th:if="${locked}" class="alert alert-success d-flex align-items-center mb-4" role="alert">
+        <i class="bi bi-lock-fill me-2 fs-5"></i>
+        <span th:text="#{order.edit.locked}">This order has been approved and can no longer be modified.</span>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-light fw-semibold">
+            <i class="bi bi-info-circle me-1"></i>
+            <span th:text="#{order.edit.details}">Order Details</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-sm-4">
+                    <span class="text-muted small d-block" th:text="#{object.order.client}">Client</span>
+                    <span class="fw-semibold">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span th:text="${order.client != null ? order.client.name : '—'}"></span>
+                    </span>
+                </div>
+                <div class="col-sm-4">
+                    <span class="text-muted small d-block" th:text="#{object.order.employee}">Employee</span>
+                    <span class="fw-semibold">
+                        <i class="bi bi-person-badge me-1"></i>
+                        <span th:text="${order.employee != null ? order.employee.name : '—'}"></span>
+                    </span>
+                </div>
+                <div class="col-sm-4">
+                    <span class="text-muted small d-block" th:text="#{order.status}">Status</span>
+                    <span th:if="${order.approved}" class="badge bg-success fs-6">
+                        <i class="bi bi-check-circle me-1"></i>
+                        <span th:text="#{order.status.approved}">Approved</span>
+                    </span>
+                    <span th:unless="${order.approved}" class="badge bg-warning text-dark fs-6">
+                        <i class="bi bi-hourglass-split me-1"></i>
+                        <span th:text="#{order.status.pending}">Pending</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-light fw-semibold">
+            <i class="bi bi-list-ul me-1"></i>
+            <span th:text="#{order.edit.rows}">Order Items</span>
+        </div>
+
+        <div th:if="${#sets.isEmpty(rows)}" class="card-body text-center text-muted py-5">
+            <i class="bi bi-cart-x display-4 mb-3 d-block"></i>
+            <p th:text="#{order.edit.rows.empty}">No items in this order yet.</p>
+            <a th:unless="${locked}"
+               th:href="@{/orders/__${order.id}__/choice-appliance}" class="btn btn-success">
+                <i class="bi bi-plus-circle me-1"></i>
+                <span th:text="#{order.edit.add.appliance}">Add Appliance</span>
+            </a>
+        </div>
+
+        <div th:unless="${#sets.isEmpty(rows)}" class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th th:text="#{shop.cart.item.appliance}">Appliance</th>
+                    <th class="d-none d-md-table-cell" th:text="#{object.appliance.manufacturer}">Manufacturer</th>
+                    <th class="text-center" th:text="#{shop.cart.item.qty}">Qty</th>
+                    <th class="text-end" th:text="#{shop.cart.item.price}">Unit Price</th>
+                    <th class="text-end fw-bold" th:text="#{object.appliance.price}">Total</th>
+                    <th th:text="#{table.col.operations}">Operations</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row: ${rows}">
+                    <td class="fw-semibold" th:text="${row.appliance.name}"></td>
+                    <td class="d-none d-md-table-cell text-muted small"
+                        th:text="${row.appliance.manufacturer != null ? row.appliance.manufacturer.getName() : '—'}"></td>
+                    <td class="text-center" style="min-width: 120px;">
+                        <form th:unless="${locked}"
+                              th:action="@{/orders/__${order.id}__/rows/__${row.id}__/update}"
+                              method="post" class="d-flex align-items-center gap-1 justify-content-center">
+                            <input type="number" name="number" th:value="${row.number}"
+                                   min="1" max="999"
+                                   class="form-control form-control-sm text-center"
+                                   style="width: 70px;">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                    th:title="#{btn.save}">
+                                <i class="bi bi-check2"></i>
+                            </button>
+                        </form>
+                        <span th:if="${locked}" class="fw-semibold" th:text="${row.number}"></span>
+                    </td>
+                    <td class="text-end text-muted">
+                        <span th:text="${row.amount}"></span> UAH
+                    </td>
+                    <td class="text-end fw-bold text-primary">
+                        <span th:text="${row.amount.multiply(T(java.math.BigDecimal).valueOf(row.number))}"></span> UAH
+                    </td>
+                    <td>
+                        <a th:unless="${locked}"
+                           th:href="@{/orders/__${order.id}__/rows/__${row.id}__/remove}"
+                           class="btn btn-sm btn-outline-danger"
+                           th:title="#{order.row.remove}"
+                           onclick="return confirm('Remove this item?')">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+                <tfoot>
+                <tr class="table-secondary">
+                    <td colspan="4" class="text-end fw-bold" th:text="#{shop.cart.total}">Total</td>
+                    <td class="text-end fw-bold fs-5 text-primary">
+                        <span th:text="${order.amount}"></span> UAH
+                    </td>
+                    <td></td>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+</main>
+<div th:insert="~{footer::footer}"></div>
+</body>
+</html>

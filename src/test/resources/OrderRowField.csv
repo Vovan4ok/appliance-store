@@ -1,0 +1,4 @@
+java.lang.Long,id
+com.vovan4ok.appliance.store.model.Appliance,appliance
+java.math.BigDecimal,amount
+java.lang.Long,number

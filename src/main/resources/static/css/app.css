@@ -1,0 +1,48 @@
+body {
+    background-color: #f4f6f9;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+.navbar-brand {
+    font-size: 1.3rem;
+    letter-spacing: .5px;
+}
+
+.site-footer {
+    background-color: #212529;
+    color: #adb5bd;
+    padding: 1.25rem 0;
+    font-size: 0.875rem;
+}
+
+.page-title {
+    margin-bottom: 1.5rem;
+    padding-bottom: .5rem;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table th {
+    white-space: nowrap;
+}
+
+.appliance-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.appliance-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+}
+
+.form-container {
+    max-width: 680px;
+}
+
+.pagination {
+    margin-top: 1rem;
+}

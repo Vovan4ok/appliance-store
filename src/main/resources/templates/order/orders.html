@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <title th:text="#{orders.header.list}">Orders</title>
+</head>
+<body class="d-flex flex-column min-vh-100">
+<header>
+    <div th:insert="~{menunavy::navy}"></div>
+</header>
+<main class="container my-4 flex-grow-1">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 mb-0" th:text="#{orders.header.list}">Orders List</h1>
+        <a sec:authorize="hasRole('EMPLOYEE')" th:href="@{/orders/add}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>
+            <span th:text="#{orders.btn.new}">New Order</span>
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                <tr>
+                    <th th:text="#{object.order.id}">ID</th>
+                    <th sec:authorize="hasRole('EMPLOYEE')" th:text="#{object.order.client}">Client</th>
+                    <th class="d-none d-md-table-cell" th:text="#{object.order.employee}">Employee</th>
+                    <th th:text="#{order.status}">Status</th>
+                    <th class="text-end" th:text="#{object.appliance.price}">Amount</th>
+                    <th th:text="#{table.col.operations}">Operations</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="order: ${orders}">
+                    <td class="text-muted small fw-semibold" th:text="${order.id}"></td>
+                    <td sec:authorize="hasRole('EMPLOYEE')">
+                        <i class="bi bi-person-circle text-secondary me-1"></i>
+                        <span th:text="${order.client != null ? order.client.name : '—'}"></span>
+                    </td>
+                    <td class="d-none d-md-table-cell text-muted">
+                        <span th:text="${order.employee != null ? order.employee.name : '—'}"></span>
+                    </td>
+                    <td>
+                        <span th:if="${order.approved == true}" class="badge bg-success">
+                            <i class="bi bi-check-circle me-1"></i>
+                            <span th:text="#{order.status.approved}">Approved</span>
+                        </span>
+                        <span th:if="${order.approved == null}" class="badge bg-warning text-dark">
+                            <i class="bi bi-hourglass-split me-1"></i>
+                            <span th:text="#{order.status.pending}">Pending Review</span>
+                        </span>
+                        <span th:if="${order.approved == false}" class="badge bg-secondary">
+                            <i class="bi bi-cart3 me-1"></i>
+                            <span th:text="#{order.status.cart}">In Cart</span>
+                        </span>
+                    </td>
+                    <td class="text-end fw-bold text-primary">
+                        <span th:text="${order.amount}"></span> UAH
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <a th:href="@{/orders/__${order.id}__/edit}"
+                               class="btn btn-sm btn-outline-primary"
+                               th:title="#{btn.edit}">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a sec:authorize="hasRole('EMPLOYEE')"
+                               th:if="${order.approved == true}"
+                               th:href="@{/orders/__${order.id}__/unapproved}"
+                               class="btn btn-sm btn-outline-warning"
+                               th:title="#{order.btn.unapprove}">
+                                <i class="bi bi-x-circle"></i>
+                            </a>
+                            <a sec:authorize="hasRole('EMPLOYEE')"
+                               th:if="${order.approved != true}"
+                               th:href="@{/orders/__${order.id}__/approved}"
+                               class="btn btn-sm btn-outline-success"
+                               th:title="#{order.btn.approve}">
+                                <i class="bi bi-check-circle"></i>
+                            </a>
+                            <a sec:authorize="hasRole('EMPLOYEE')"
+                               th:href="@{/orders/__${order.id}__/delete}"
+                               class="btn btn-sm btn-outline-danger"
+                               th:title="#{btn.delete}"
+                               onclick="return confirm('Delete this order?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(orders)}">
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox me-1"></i>
+                        <span th:text="#{table.empty}">No records found</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <nav th:if="${totalPages > 1}" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                <a class="page-link" th:href="@{/orders(page=${currentPage - 1})}">&#8592;</a>
+            </li>
+            <li class="page-item"
+                th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+                th:classappend="${i == currentPage} ? 'active'">
+                <a class="page-link" th:href="@{/orders(page=${i})}" th:text="${i + 1}"></a>
+            </li>
+            <li class="page-item" th:classappend="${currentPage + 1 >= totalPages} ? 'disabled'">
+                <a class="page-link" th:href="@{/orders(page=${currentPage + 1})}">&#8594;</a>
+            </li>
+        </ul>
+    </nav>
+
+</main>
+<div th:insert="~{footer::footer}"></div>
+</body>
+</html>

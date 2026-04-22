@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <title th:text="#{login.header}">Sign In</title>
+</head>
+<body class="d-flex flex-column min-vh-100 bg-light">
+<header>
+    <div th:insert="~{menunavy::navy}"></div>
+</header>
+<main class="container flex-grow-1 d-flex align-items-center justify-content-center py-5">
+    <div class="col-sm-8 col-md-5 col-lg-4">
+
+        <div class="text-center mb-4">
+            <i class="bi bi-person-circle display-3 text-primary"></i>
+            <h1 class="h3 mt-2 fw-bold" th:text="#{login.header}">Sign In</h1>
+        </div>
+        <div th:if="${param.logout}" class="alert alert-info d-flex align-items-center mb-3" role="alert">
+            <i class="bi bi-box-arrow-left me-2"></i>
+            <span>You have been logged out.</span>
+        </div>
+        <div th:if="${param.registered}" class="alert alert-success d-flex align-items-center mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <span th:text="#{login.registered}">Registration successful! You can now sign in.</span>
+        </div>
+        <div th:if="${param.error}" class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="#{login.error}">Invalid email or password.</span>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <form th:action="@{/auth/login}" method="post">
+
+                    <div class="mb-3">
+                        <label for="username" class="form-label fw-semibold" th:text="#{object.user.email}">Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <input type="email" id="username" name="username"
+                                   class="form-control" autocomplete="email" required autofocus>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label fw-semibold" th:text="#{object.user.password}">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <input type="password" id="password" name="password"
+                                   class="form-control" autocomplete="current-password" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>
+                        <span th:text="#{login.submit}">Sign In</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <p class="text-center mt-3 text-muted small">
+            <span th:text="#{login.no.account}">Don't have an account?</span>
+            <a th:href="@{/register}" th:text="#{login.register.link}">Register here</a>
+        </p>
+
+    </div>
+</main>
+<div th:insert="~{footer::footer}"></div>
+</body>
+</html>

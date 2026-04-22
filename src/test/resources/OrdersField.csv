@@ -1,0 +1,5 @@
+java.lang.Long,id,1
+java.lang.Boolean,approved,1
+com.vovan4ok.appliance.store.model.Client,client,1
+com.vovan4ok.appliance.store.model.Employee,employee,1
+java.util.Set,orderRowSet,1
