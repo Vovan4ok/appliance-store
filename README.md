@@ -11,6 +11,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - **Migrations:** Flyway
 - **Containerization:** Docker, Docker Compose
 - **Build:** Maven
+- **CI:** GitHub Actions
 
 ## Features
 
