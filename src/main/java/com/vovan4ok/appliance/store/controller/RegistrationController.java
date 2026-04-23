@@ -50,6 +50,8 @@ public class RegistrationController {
 
         Client client = new Client(null, dto.getName(), dto.getEmail(),
                 passwordEncoder.encode(dto.getPassword()), dto.getCard());
+        client.setPhone(dto.getPhone());
+        client.setDateOfBirth(dto.getDateOfBirth());
         clientService.save(client);
         log.info("New client registered: {}", dto.getEmail());
 

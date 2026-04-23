@@ -150,7 +150,7 @@ public class ShopController {
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
         Page<Appliance> result = applianceService.findAll(
-                name, category, powerType, manufacturerId, minPrice, maxPrice, inStockOnly,
+                name, category, powerType, manufacturerId, minPrice, maxPrice, inStockOnly, false,
                 PageRequest.of(page, size, sort));
         model.addAttribute("appliances", result.getContent());
         model.addAttribute("currentPage", page);

@@ -46,10 +46,16 @@
                     <a th:href="@{__${currentUri}__(lang=uk)}" class="btn btn-outline-light btn-sm">UA</a>
                 </div>
                 <div class="d-flex align-items-center gap-2" sec:authorize="isAuthenticated()">
-                    <span class="text-light small">
-                        <i class="bi bi-person-circle"></i>
-                        <span sec:authentication="name"></span>
-                    </span>
+                    <a th:href="@{/profile}" class="d-flex align-items-center gap-2 text-light text-decoration-none">
+                        <img th:if="${currentUserAvatarPath != null}"
+                             th:src="@{/uploads/__${currentUserAvatarPath}__}"
+                             class="rounded-circle border border-secondary"
+                             style="width:32px;height:32px;object-fit:cover;" alt="avatar">
+                        <i th:unless="${currentUserAvatarPath != null}"
+                           class="bi bi-person-circle fs-5"></i>
+                        <span class="small d-none d-sm-inline"
+                              th:text="${currentUserDisplayName} ?: ''"></span>
+                    </a>
                     <form th:action="@{/auth/logout}" method="post" class="d-inline m-0">
                         <button type="submit" class="btn btn-outline-light btn-sm" th:text="#{nav.logout}">
                             Logout

@@ -24,6 +24,7 @@ public interface ApplianceService {
             BigDecimal minPrice,
             BigDecimal maxPrice,
             boolean inStockOnly,
+            boolean outOfStockOnly,
             Pageable pageable
     );
 

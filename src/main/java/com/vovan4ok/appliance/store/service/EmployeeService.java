@@ -20,4 +20,6 @@ public interface EmployeeService {
     void delete(Long id);
 
     java.util.Optional<Employee> findByEmail(String email);
+
+    void updateAvatar(Long id, String avatarPath);
 }

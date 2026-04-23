@@ -51,6 +51,8 @@ public class ClientController {
             return "client/newClient";
         }
         Client client = new Client(null, dto.getName(), dto.getEmail(), passwordEncoder.encode(dto.getPassword()), dto.getCard());
+        client.setPhone(dto.getPhone());
+        client.setDateOfBirth(dto.getDateOfBirth());
         clientService.save(client);
         log.info("Client saved: name={}", client.getName());
         return "redirect:/clients";

@@ -20,4 +20,6 @@ public interface ClientService {
     void delete(Long id);
 
     Optional<Client> findByEmail(String email);
+
+    void updateAvatar(Long id, String avatarPath);
 }

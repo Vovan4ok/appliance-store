@@ -2,3 +2,6 @@ java.lang.Long,id,1
 java.lang.String,name,1
 java.lang.String,email,1
 java.lang.String,password,1
+java.lang.String,phone,1
+java.time.LocalDate,dateOfBirth,1
+java.lang.String,avatarPath,1

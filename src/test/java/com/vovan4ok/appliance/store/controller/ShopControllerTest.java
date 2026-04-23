@@ -65,7 +65,7 @@ class ShopControllerTest {
 
     @Test
     void catalog_returnsShopViewWithAttributes() throws Exception {
-        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), anyBoolean(), any(Pageable.class)))
+        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), anyBoolean(), anyBoolean(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
         when(manufacturerService.findAll()).thenReturn(List.of(new Manufacturer(1L, "Samsung")));
         when(orderService.findPendingByClientEmail(anyString())).thenReturn(Optional.empty());
@@ -83,7 +83,7 @@ class ShopControllerTest {
     void catalog_withCartItems_populatesCartCount() throws Exception {
         Orders order = buildPendingOrder(1L);
         order.getOrderRowSet().add(new OrderRow());
-        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), anyBoolean(), any(Pageable.class)))
+        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), anyBoolean(), anyBoolean(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
         when(manufacturerService.findAll()).thenReturn(List.of());
         when(orderService.findPendingByClientEmail("client@mail.com")).thenReturn(Optional.of(order));

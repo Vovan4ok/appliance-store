@@ -54,4 +54,13 @@ public class EmployeeServiceImpl implements EmployeeService {
     public Optional<Employee> findByEmail(String email) {
         return employeeRepository.findByEmail(email);
     }
+
+    @Transactional
+    @Override
+    public void updateAvatar(Long id, String avatarPath) {
+        employeeRepository.findById(id).ifPresent(e -> {
+            e.setAvatarPath(avatarPath);
+            employeeRepository.save(e);
+        });
+    }
 }

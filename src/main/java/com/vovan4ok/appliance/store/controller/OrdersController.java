@@ -104,7 +104,7 @@ public class OrdersController {
                 : Sort.by(sortBy).ascending();
 
         Page<Appliance> result =
-                applianceService.findAll(name, category, powerType, manufacturerId, minPrice, maxPrice, false,
+                applianceService.findAll(name, category, powerType, manufacturerId, minPrice, maxPrice, false, false,
                         PageRequest.of(page, size, sort));
 
         model.addAttribute("ordersId", id);

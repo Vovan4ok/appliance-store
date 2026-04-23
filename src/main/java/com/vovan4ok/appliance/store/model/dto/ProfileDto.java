@@ -1,7 +1,5 @@
 package com.vovan4ok.appliance.store.model.dto;
 
-import com.vovan4ok.appliance.store.validation.ValidPassword;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
@@ -15,20 +13,10 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @NoArgsConstructor
-public class EmployeeDto {
+public class ProfileDto {
 
-    @NotBlank
+    @NotBlank(message = "{user.name.is.mandatory}")
     private String name;
-
-    @NotBlank
-    @Email
-    private String email;
-
-    @NotBlank
-    @ValidPassword
-    private String password;
-
-    private String department;
 
     @Pattern(regexp = "^$|^\\+?(?:\\d[\\s\\-()]*){7,15}$", message = "{user.phone.error}")
     private String phone;
@@ -36,4 +24,8 @@ public class EmployeeDto {
     @Past(message = "{user.dob.error}")
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate dateOfBirth;
+
+    private String card;
+
+    private String department;
 }

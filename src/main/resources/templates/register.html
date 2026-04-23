@@ -56,13 +56,31 @@
                              th:text="#{user.password.is.correctly}"></div>
                     </div>
 
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label class="form-label fw-semibold" th:text="#{object.client.card}">Card Number</label>
                         <input type="text" class="form-control font-monospace" th:field="*{card}"
                                th:classappend="${#fields.hasErrors('card')} ? 'is-invalid'"
                                placeholder="e.g. 1234-5678">
                         <div class="invalid-feedback" th:if="${#fields.hasErrors('card')}"
                              th:text="#{user.card.error}"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" th:text="#{object.user.phone}">Phone</label>
+                        <input type="tel" class="form-control" th:field="*{phone}"
+                               th:classappend="${#fields.hasErrors('phone')} ? 'is-invalid'"
+                               th:placeholder="#{profile.phone.placeholder}"
+                               autocomplete="tel">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('phone')}"
+                             th:text="#{user.phone.error}"></div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold" th:text="#{object.user.dob}">Date of Birth</label>
+                        <input type="date" class="form-control" th:field="*{dateOfBirth}"
+                               th:classappend="${#fields.hasErrors('dateOfBirth')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('dateOfBirth')}"
+                             th:text="#{user.dob.error}"></div>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100">

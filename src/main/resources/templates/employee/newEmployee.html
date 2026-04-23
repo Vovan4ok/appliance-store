@@ -48,11 +48,26 @@
                                  th:text="#{user.password.is.correctly}"></div>
                         </div>
 
-                        <div class="mb-4">
+                        <div class="mb-3">
                             <label class="form-label fw-semibold" th:text="#{object.employee.department}">Department</label>
                             <input type="text" class="form-control" th:field="*{department}" th:classappend="${#fields.hasErrors('department')} ? 'is-invalid'">
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('department')}"
                                  th:text="#{user.department.is.correctly}"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" th:text="#{object.user.phone}">Phone</label>
+                            <input type="tel" class="form-control" th:field="*{phone}"
+                                   th:classappend="${#fields.hasErrors('phone')} ? 'is-invalid'"
+                                   th:placeholder="#{profile.phone.placeholder}">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('phone')}" th:text="#{user.phone.error}"></div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold" th:text="#{object.user.dob}">Date of Birth</label>
+                            <input type="date" class="form-control" th:field="*{dateOfBirth}"
+                                   th:classappend="${#fields.hasErrors('dateOfBirth')} ? 'is-invalid'">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('dateOfBirth')}" th:text="#{user.dob.error}"></div>
                         </div>
 
                         <div class="d-flex gap-2">

@@ -25,9 +25,13 @@ services:
       DB_USERNAME: ${POSTGRES_USER:-appuser}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-apppassword}
       JWT_SECRET: ${JWT_SECRET:-appliance-store-jwt-secret-key-must-be-at-least-32-characters-long!}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - app_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
 
 volumes:
   postgres_data:
+  app_uploads:

@@ -50,9 +50,9 @@ public class TestConstants {
 
     static class User {
         public static final String CLASS_NAME = "User";
-        public static final int CLASS_COUNT_FIELDS = 4;
+        public static final int CLASS_COUNT_FIELDS = 7;
         public static final int CLASS_COUNT_CONSTRUCTORS = 2;
-        public static final int PARAMETERS_IN_CONSTRUCTOR_WITH_PARAMETERS = CLASS_COUNT_FIELDS;
+        public static final int PARAMETERS_IN_CONSTRUCTOR_WITH_PARAMETERS = 4;
     }
 
     static class Client {
@@ -60,7 +60,7 @@ public class TestConstants {
         public static final int CLASS_COUNT_FIELDS = 1;
         public static final String FIELD_CARD = "card";
         public static final int CLASS_COUNT_CONSTRUCTORS = 2;
-        public static final int PARAMETERS_IN_CONSTRUCTOR_WITH_PARAMETERS = CLASS_COUNT_FIELDS + User.CLASS_COUNT_FIELDS;
+        public static final int PARAMETERS_IN_CONSTRUCTOR_WITH_PARAMETERS = 5;
     }
 
     static class Employee {
@@ -68,7 +68,7 @@ public class TestConstants {
         public static final int CLASS_COUNT_FIELDS = 1;
         public static final String FIELD_DEPARTMENT = "department";
         public static final int CLASS_COUNT_CONSTRUCTORS = 2;
-        public static final int PARAMETERS_IN_CONSTRUCTOR_WITH_PARAMETERS = CLASS_COUNT_FIELDS + User.CLASS_COUNT_FIELDS;
+        public static final int PARAMETERS_IN_CONSTRUCTOR_WITH_PARAMETERS = 5;
     }
 
     static class OrderRow {

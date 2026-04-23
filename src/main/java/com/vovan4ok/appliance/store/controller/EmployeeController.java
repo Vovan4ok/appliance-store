@@ -51,6 +51,8 @@ public class EmployeeController {
             return "employee/newEmployee";
         }
         Employee employee = new Employee(null, dto.getName(), dto.getEmail(), passwordEncoder.encode(dto.getPassword()), dto.getDepartment());
+        employee.setPhone(dto.getPhone());
+        employee.setDateOfBirth(dto.getDateOfBirth());
         employeeService.save(employee);
         log.info("Employee saved: name={}", employee.getName());
         return "redirect:/employees";

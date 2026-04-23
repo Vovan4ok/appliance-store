@@ -53,4 +53,13 @@ public class ClientServiceImpl implements ClientService {
     public Optional<Client> findByEmail(String email) {
         return clientRepository.findByEmail(email);
     }
+
+    @Transactional
+    @Override
+    public void updateAvatar(Long id, String avatarPath) {
+        clientRepository.findById(id).ifPresent(c -> {
+            c.setAvatarPath(avatarPath);
+            clientRepository.save(c);
+        });
+    }
 }

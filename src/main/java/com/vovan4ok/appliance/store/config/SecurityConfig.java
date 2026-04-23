@@ -52,7 +52,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/", "/login", "/register", "/auth/login", "/auth/logout", "/favicon.ico").permitAll()
+                        .requestMatchers("/", "/login", "/register", "/auth/login", "/auth/logout", "/favicon.ico", "/uploads/**").permitAll()
                         .requestMatchers("/employees/**", "/manufacturers/**",
                                 "/appliances/**", "/clients/**").hasRole("EMPLOYEE")
                         .requestMatchers("/shop/**").hasRole("CLIENT")

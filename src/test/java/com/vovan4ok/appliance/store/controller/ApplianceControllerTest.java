@@ -52,7 +52,7 @@ class ApplianceControllerTest {
 
     @Test
     void list_returnsAppliancesView() throws Exception {
-        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), anyBoolean(), any(Pageable.class)))
+        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), anyBoolean(), anyBoolean(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(buildAppliance())));
         when(manufacturerService.findAll()).thenReturn(List.of(new Manufacturer(1L, "Samsung")));
 

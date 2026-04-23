@@ -6,17 +6,19 @@ import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.LocalDate;
 
 @MappedSuperclass
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class User {
 
     @Id
@@ -33,6 +35,21 @@ public class User {
     @NotBlank
     @Size(min = 3)
     private String password;
+
+    @Pattern(regexp = "^$|^\\+?(?:\\d[\\s\\-()]*){7,15}$", message = "{user.phone.error}")
+    private String phone;
+
+    @Past(message = "{user.dob.error}")
+    private LocalDate dateOfBirth;
+
+    private String avatarPath;
+
+    public User(Long id, String name, String email, String password) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.password = password;
+    }
 
     @Override
     public String toString() {

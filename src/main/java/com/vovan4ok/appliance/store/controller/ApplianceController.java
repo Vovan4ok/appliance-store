@@ -40,16 +40,17 @@ public class ApplianceController {
                        @RequestParam(required = false) BigDecimal minPrice,
                        @RequestParam(required = false) BigDecimal maxPrice,
                        @RequestParam(defaultValue = "name") String sortBy,
-                       @RequestParam(defaultValue = "asc") String sortDir) {
-        log.debug("GET /appliances page={} size={} name={} category={} powerType={} manufacturerId={} sortBy={} sortDir={}",
-                page, size, name, category, powerType, manufacturerId, sortBy, sortDir);
+                       @RequestParam(defaultValue = "asc") String sortDir,
+                       @RequestParam(defaultValue = "false") boolean outOfStockOnly) {
+        log.debug("GET /appliances page={} size={} name={} category={} powerType={} manufacturerId={} sortBy={} sortDir={} outOfStockOnly={}",
+                page, size, name, category, powerType, manufacturerId, sortBy, sortDir, outOfStockOnly);
 
         Sort sort = sortDir.equalsIgnoreCase("desc")
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
 
         Page<Appliance> result = applianceService.findAll(
-                name, category, powerType, manufacturerId, minPrice, maxPrice, false,
+                name, category, powerType, manufacturerId, minPrice, maxPrice, false, outOfStockOnly,
                 PageRequest.of(page, size, sort));
 
         model.addAttribute("appliances", result.getContent());
@@ -64,6 +65,7 @@ public class ApplianceController {
         model.addAttribute("filterMaxPrice", maxPrice);
         model.addAttribute("sortBy", sortBy);
         model.addAttribute("sortDir", sortDir);
+        model.addAttribute("filterOutOfStockOnly", outOfStockOnly);
 
         model.addAttribute("categories", Category.values());
         model.addAttribute("powerTypes", PowerType.values());

@@ -31,6 +31,8 @@
                     <th th:text="#{object.user.name}">Name</th>
                     <th th:text="#{object.user.email}">Email</th>
                     <th class="d-none d-md-table-cell" th:text="#{object.employee.department}">Department</th>
+                    <th class="d-none d-xl-table-cell" th:text="#{object.user.phone}">Phone</th>
+                    <th class="d-none d-xl-table-cell" th:text="#{object.user.dob}">Date of Birth</th>
                     <th th:text="#{table.col.operations}">Operations</th>
                 </tr>
                 </thead>
@@ -45,6 +47,8 @@
                     <td class="d-none d-md-table-cell">
                         <span class="badge bg-info text-dark" th:text="${employee.department}"></span>
                     </td>
+                    <td class="d-none d-xl-table-cell text-muted small" th:text="${employee.phone != null} ? ${employee.phone} : '—'"></td>
+                    <td class="d-none d-xl-table-cell text-muted small" th:text="${employee.dateOfBirth != null} ? ${#temporals.format(employee.dateOfBirth, 'dd.MM.yyyy')} : '—'"></td>
                     <td>
                         <a th:href="@{/employees/__${employee.id}__/delete}"
                            class="btn btn-sm btn-outline-danger"
@@ -55,7 +59,7 @@
                     </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(employees)}">
-                    <td colspan="5" class="text-center text-muted py-4">
+                    <td colspan="7" class="text-center text-muted py-4">
                         <i class="bi bi-inbox me-1"></i>
                         <span th:text="#{table.empty}">No records found</span>
                     </td>
