@@ -1,5 +1,7 @@
 # Appliance Store
 
+[![CI](https://github.com/Vovan4ok/appliance-store/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Vovan4ok/appliance-store/actions/workflows/ci.yml)
+
 A full-stack e-commerce web application for managing and selling home appliances, built with Spring Boot 3.2 and Java 17.
 
 ## Tech Stack
