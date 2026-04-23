@@ -20,7 +20,8 @@ public class ApplianceSpecification {
             PowerType powerType,
             Long manufacturerId,
             BigDecimal minPrice,
-            BigDecimal maxPrice
+            BigDecimal maxPrice,
+            boolean inStockOnly
     ) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -42,6 +43,9 @@ public class ApplianceSpecification {
             }
             if (maxPrice != null) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("price"), maxPrice));
+            }
+            if (inStockOnly) {
+                predicates.add(cb.greaterThan(root.get("stock"), 0));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));

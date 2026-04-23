@@ -46,6 +46,11 @@
         <span th:text="#{order.edit.locked}">This order has been approved and can no longer be modified.</span>
     </div>
 
+    <div th:if="${approvalError}" class="alert alert-danger d-flex align-items-center mb-4" role="alert">
+        <i class="bi bi-x-circle-fill me-2 fs-5"></i>
+        <span th:text="#{error.stock.approval}">Approval failed.</span>
+    </div>
+
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-light fw-semibold">
             <i class="bi bi-info-circle me-1"></i>
@@ -111,8 +116,13 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="row: ${rows}">
-                    <td class="fw-semibold" th:text="${row.appliance.name}"></td>
+                <tr th:each="row: ${rows}"
+                    th:classappend="${row.appliance.stock != null and row.appliance.stock == 0} ? 'table-warning'">
+                    <td class="fw-semibold">
+                        <span th:text="${row.appliance.name}"></span>
+                        <span th:if="${row.appliance.stock != null and row.appliance.stock == 0}"
+                              class="badge bg-danger ms-1 small" th:text="#{shop.out.of.stock}">Out of stock</span>
+                    </td>
                     <td class="d-none d-md-table-cell text-muted small"
                         th:text="${row.appliance.manufacturer != null ? row.appliance.manufacturer.getName() : '—'}"></td>
                     <td class="text-center" style="min-width: 120px;">

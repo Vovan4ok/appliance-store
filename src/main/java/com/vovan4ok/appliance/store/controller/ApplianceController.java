@@ -49,7 +49,7 @@ public class ApplianceController {
                 : Sort.by(sortBy).ascending();
 
         Page<Appliance> result = applianceService.findAll(
-                name, category, powerType, manufacturerId, minPrice, maxPrice,
+                name, category, powerType, manufacturerId, minPrice, maxPrice, false,
                 PageRequest.of(page, size, sort));
 
         model.addAttribute("appliances", result.getContent());
@@ -109,6 +109,7 @@ public class ApplianceController {
         appliance.setDescription(dto.getDescription());
         appliance.setPower(dto.getPower());
         appliance.setPrice(dto.getPrice());
+        appliance.setStock(dto.getStock());
         applianceService.save(appliance);
     }
 
@@ -138,6 +139,7 @@ public class ApplianceController {
         dto.setDescription(appliance.getDescription());
         dto.setPower(appliance.getPower());
         dto.setPrice(appliance.getPrice());
+        dto.setStock(appliance.getStock());
         return dto;
     }
 

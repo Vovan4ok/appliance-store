@@ -16,14 +16,16 @@ A full-stack e-commerce web application for managing and selling home appliances
 ## Features
 
 ### Client
-- Browse and filter appliances by category, manufacturer, power type, and price
-- Shopping cart — add items, update quantities, remove rows
+- Browse and filter appliances by category, manufacturer, power type, price, and availability ("In stock only")
+- Out-of-stock appliances shown with a blurred overlay — visible but unorderable
+- Shopping cart — add items, update quantities, remove rows; warns if a cart item goes out of stock
 - Submit orders for employee review
 - View order history
 
 ### Employee (Admin)
 - Full CRUD for appliances, manufacturers, clients, and employees
-- Approve / unapprove submitted orders
+- Manage stock levels directly on the appliance create/edit form
+- Approve / unapprove submitted orders — approval validates and decrements stock; blocked with a clear error if any item is out of stock
 - View all orders across all clients
 
 ### General

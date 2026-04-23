@@ -8,6 +8,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @ControllerAdvice
@@ -37,6 +38,12 @@ public class GlobalExceptionHandler {
         model.addAttribute("message", ex.getMessage());
         model.addAttribute("path", request.getRequestURI());
         return "error";
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void handleNoResourceFound() {
+        // static resource missing (e.g. favicon.ico) — return 404 with no body and no log noise
     }
 
     @ExceptionHandler(Exception.class)

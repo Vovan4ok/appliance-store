@@ -1,5 +1,6 @@
 package com.vovan4ok.appliance.store.controller;
 
+import com.vovan4ok.appliance.store.exception.InsufficientStockException;
 import com.vovan4ok.appliance.store.model.Category;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.Orders;
@@ -10,6 +11,7 @@ import com.vovan4ok.appliance.store.service.ClientService;
 import com.vovan4ok.appliance.store.service.EmployeeService;
 import com.vovan4ok.appliance.store.service.ManufacturerService;
 import com.vovan4ok.appliance.store.service.OrderService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -102,7 +104,7 @@ public class OrdersController {
                 : Sort.by(sortBy).ascending();
 
         Page<Appliance> result =
-                applianceService.findAll(name, category, powerType, manufacturerId, minPrice, maxPrice,
+                applianceService.findAll(name, category, powerType, manufacturerId, minPrice, maxPrice, false,
                         PageRequest.of(page, size, sort));
 
         model.addAttribute("ordersId", id);
@@ -162,10 +164,21 @@ public class OrdersController {
     }
 
     @GetMapping("/{id}/approved")
-    public String approve(@PathVariable Long id) {
+    public String approve(@PathVariable Long id, Model model) {
         log.info("Approving order id={}", id);
-        orderService.approve(id);
-        return "redirect:/orders";
+        try {
+            orderService.approve(id);
+            return "redirect:/orders";
+        } catch (InsufficientStockException e) {
+            log.warn("Approval blocked for order id={}: {}", id, e.getMessage());
+            Orders order = orderService.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Order not found: " + id));
+            model.addAttribute("order", order);
+            model.addAttribute("rows", order.getOrderRowSet());
+            model.addAttribute("approvalError", true);
+            model.addAttribute("currentUri", "/orders/" + id + "/edit");
+            return "order/editOrder";
+        }
     }
 
     @GetMapping("/{id}/unapproved")

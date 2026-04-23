@@ -52,13 +52,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/", "/login", "/register", "/auth/login", "/auth/logout").permitAll()
+                        .requestMatchers("/", "/login", "/register", "/auth/login", "/auth/logout", "/favicon.ico").permitAll()
                         .requestMatchers("/employees/**", "/manufacturers/**",
                                 "/appliances/**", "/clients/**").hasRole("EMPLOYEE")
                         .requestMatchers("/shop/**").hasRole("CLIENT")
                         .requestMatchers("/orders/**").authenticated()
                         .anyRequest().authenticated()
                 )
+                .requestCache(cache -> cache.disable())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())

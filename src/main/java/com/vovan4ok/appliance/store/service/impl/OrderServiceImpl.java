@@ -1,6 +1,7 @@
 package com.vovan4ok.appliance.store.service.impl;
 
 import com.vovan4ok.appliance.store.aspect.Loggable;
+import com.vovan4ok.appliance.store.exception.InsufficientStockException;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.OrderRow;
 import com.vovan4ok.appliance.store.model.Orders;
@@ -69,10 +70,25 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     @Override
     public void approve(Long id) {
-        ordersRepository.findById(id).ifPresent(order -> {
-            order.setApproved(true);
-            ordersRepository.save(order);
-        });
+        Orders order = ordersRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + id));
+
+        for (OrderRow row : order.getOrderRowSet()) {
+            Appliance appliance = row.getAppliance();
+            int available = appliance.getStock() != null ? appliance.getStock() : 0;
+            if (available < row.getNumber()) {
+                throw new InsufficientStockException(appliance.getName(), available);
+            }
+        }
+
+        for (OrderRow row : order.getOrderRowSet()) {
+            Appliance appliance = row.getAppliance();
+            appliance.setStock(appliance.getStock() - row.getNumber().intValue());
+            applianceRepository.save(appliance);
+        }
+
+        order.setApproved(true);
+        ordersRepository.save(order);
     }
 
     @Loggable
@@ -132,6 +148,11 @@ public class OrderServiceImpl implements OrderService {
         return ordersRepository.findById(orderId)
                 .map(o -> new ArrayList<>(o.getOrderRowSet()))
                 .orElse(new ArrayList<>());
+    }
+
+    @Override
+    public Optional<OrderRow> findOrderRowById(Long rowId) {
+        return applianceInOrderRepository.findById(rowId);
     }
 
     @Loggable

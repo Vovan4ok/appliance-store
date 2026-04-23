@@ -37,7 +37,7 @@ class ApplianceServiceImplTest {
     private Appliance buildAppliance(Long id) {
         Manufacturer m = new Manufacturer(1L, "Samsung");
         return new Appliance(id, "Fridge", Category.BIG, "RB37", m,
-                PowerType.AC220, "A++", "Big fridge", 100, BigDecimal.valueOf(500));
+                PowerType.AC220, "A++", "Big fridge", 100, BigDecimal.valueOf(500), 10);
     }
 
     @Test
@@ -72,7 +72,7 @@ class ApplianceServiceImplTest {
 
         Page<Appliance> result = applianceService.findAll(
                 "Fridge", Category.BIG, PowerType.AC220, 1L,
-                BigDecimal.valueOf(100), BigDecimal.valueOf(1000), pageable
+                BigDecimal.valueOf(100), BigDecimal.valueOf(1000), false, pageable
         );
 
         assertThat(result.getContent()).hasSize(1);
@@ -86,7 +86,7 @@ class ApplianceServiceImplTest {
         Page<Appliance> page = new PageImpl<>(List.of(buildAppliance(1L)));
         when(applianceRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
 
-        Page<Appliance> result = applianceService.findAll(null, null, null, null, null, null, pageable);
+        Page<Appliance> result = applianceService.findAll(null, null, null, null, null, null, false, pageable);
 
         assertThat(result).isNotNull();
     }

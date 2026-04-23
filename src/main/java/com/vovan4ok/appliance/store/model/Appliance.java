@@ -37,4 +37,5 @@ public class Appliance {
     private String description;
     private Integer power;
     private BigDecimal price;
+    private Integer stock;
 }

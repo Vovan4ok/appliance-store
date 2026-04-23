@@ -42,10 +42,11 @@ public class ApplianceServiceImpl implements ApplianceService {
             Long manufacturerId,
             BigDecimal minPrice,
             BigDecimal maxPrice,
+            boolean inStockOnly,
             Pageable pageable
     ) {
         return applianceRepository.findAll(
-                ApplianceSpecification.withFilters(name, category, powerType, manufacturerId, minPrice, maxPrice),
+                ApplianceSpecification.withFilters(name, category, powerType, manufacturerId, minPrice, maxPrice, inStockOnly),
                 pageable
         );
     }

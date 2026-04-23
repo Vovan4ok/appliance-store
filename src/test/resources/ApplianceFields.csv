@@ -8,3 +8,4 @@ java.lang.String,characteristic,1
 java.lang.String,description,1
 java.lang.Integer,power,1
 java.math.BigDecimal,price,1
+java.lang.Integer,stock,1

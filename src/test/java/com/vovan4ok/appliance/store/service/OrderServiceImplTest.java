@@ -117,10 +117,11 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void approve_orderNotFound_doesNothing() {
+    void approve_orderNotFound_throwsIllegalArgument() {
         when(ordersRepository.findById(99L)).thenReturn(Optional.empty());
 
-        orderService.approve(99L);
+        assertThatThrownBy(() -> orderService.approve(99L))
+                .isInstanceOf(IllegalArgumentException.class);
 
         verify(ordersRepository, never()).save(any());
     }

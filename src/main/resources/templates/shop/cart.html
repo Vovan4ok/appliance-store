@@ -25,6 +25,13 @@
     </div>
 
     <div th:unless="${order == null or order.orderRowSet.empty}">
+
+<div th:if="${order.orderRowSet.?[appliance.stock != null and appliance.stock == 0].size() > 0}"
+             class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+            <span th:text="#{shop.cart.stock.warning}">Some items are out of stock.</span>
+        </div>
+
         <div class="card shadow-sm border-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -50,16 +57,22 @@
                         <td class="text-center" style="min-width: 130px;">
                             <form th:action="@{/shop/cart/rows/__${row.id}__/update}"
                                   method="post"
+                                  novalidate
                                   class="d-flex align-items-center gap-1 justify-content-center">
                                 <input type="number" name="number" th:value="${row.number}"
-                                       min="1" max="999"
+                                       min="1"
+                                       th:max="${row.appliance.stock != null ? row.appliance.stock : 999}"
                                        class="form-control form-control-sm text-center"
-                                       style="width: 70px;">
+                                       style="width: 70px;"
+                                       th:classappend="${stockError != null and stockError == row.id} ? 'is-invalid'">
                                 <button type="submit" class="btn btn-sm btn-outline-secondary"
                                         th:title="#{btn.save}">
                                     <i class="bi bi-check2"></i>
                                 </button>
                             </form>
+                            <div class="invalid-feedback d-block mt-1"
+                                 th:if="${stockError != null and stockError == row.id}"
+                                 th:text="#{error.stock.exceeded}"></div>
                         </td>
                         <td class="text-end fw-bold text-primary">
                             <span th:text="${row.amount.multiply(T(java.math.BigDecimal).valueOf(row.number))}"></span> UAH

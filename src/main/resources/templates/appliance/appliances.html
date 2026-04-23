@@ -212,6 +212,12 @@
                             <span class="info-label" th:text="#{object.appliance.characteristic}">Characteristic</span>
                             <span class="info-value text-muted" th:text="${appliance.characteristic}"></span>
                         </div>
+                        <div class="info-row">
+                            <span class="info-label" th:text="#{object.appliance.stock}">Stock</span>
+                            <span class="info-value fw-semibold"
+                                  th:classappend="${appliance.stock != null and appliance.stock == 0} ? 'text-danger' : 'text-success'"
+                                  th:text="${appliance.stock != null} ? ${appliance.stock} : '—'"></span>
+                        </div>
                     </div>
 
                     <div class="d-flex align-items-center justify-content-between mt-auto pt-2 border-top">

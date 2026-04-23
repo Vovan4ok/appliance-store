@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -141,7 +142,7 @@ class OrdersControllerTest {
 
     @Test
     void choiceAppliance_returnsChoiceView() throws Exception {
-        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), any(Pageable.class)))
+        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), anyBoolean(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
         when(manufacturerService.findAll()).thenReturn(List.of(new Manufacturer(1L, "Samsung")));
 

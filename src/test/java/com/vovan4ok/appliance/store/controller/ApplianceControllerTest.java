@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -46,12 +47,12 @@ class ApplianceControllerTest {
     private Appliance buildAppliance() {
         Manufacturer m = new Manufacturer(1L, "Samsung");
         return new Appliance(1L, "Fridge", Category.BIG, "RB37", m,
-                PowerType.AC220, "A++", "Big fridge", 100, BigDecimal.valueOf(500));
+                PowerType.AC220, "A++", "Big fridge", 100, BigDecimal.valueOf(500), 10);
     }
 
     @Test
     void list_returnsAppliancesView() throws Exception {
-        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), any(Pageable.class)))
+        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), anyBoolean(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(buildAppliance())));
         when(manufacturerService.findAll()).thenReturn(List.of(new Manufacturer(1L, "Samsung")));
 
@@ -87,6 +88,7 @@ class ApplianceControllerTest {
                         .param("description", "Big fridge")
                         .param("power", "100")
                         .param("price", "500.00")
+                        .param("stock", "10")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/appliances"));
@@ -108,6 +110,7 @@ class ApplianceControllerTest {
                         .param("description", "Big fridge")
                         .param("power", "100")
                         .param("price", "500.00")
+                        .param("stock", "10")
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("appliance/newAppliance"));
@@ -151,6 +154,7 @@ class ApplianceControllerTest {
                         .param("description", "Big fridge")
                         .param("power", "100")
                         .param("price", "500.00")
+                        .param("stock", "10")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/appliances"));
@@ -170,6 +174,7 @@ class ApplianceControllerTest {
                         .param("description", "Big fridge")
                         .param("power", "100")
                         .param("price", "500.00")
+                        .param("stock", "10")
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("appliance/editAppliance"));

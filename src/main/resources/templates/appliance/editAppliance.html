@@ -87,6 +87,12 @@
                                     <div class="invalid-feedback" th:if="${#fields.hasErrors('price')}" th:text="#{appliance.price.error}">Invalid price</div>
                                 </div>
                             </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold" th:text="#{object.appliance.stock}">Stock</label>
+                                <input type="number" min="0" class="form-control" th:field="*{stock}"
+                                       th:classappend="${#fields.hasErrors('stock')} ? 'is-invalid'">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('stock')}" th:text="#{appliance.stock.error}">Invalid stock</div>
+                            </div>
 
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold" th:text="#{object.appliance.characteristic}">Characteristic</label>

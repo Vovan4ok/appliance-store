@@ -43,7 +43,7 @@ public class TestConstants {
 
     static class Appliance {
         public static final String CLASS_NAME = "Appliance";
-        public static final int CLASS_COUNT_FIELDS = 10;
+        public static final int CLASS_COUNT_FIELDS = 11;
         public static final int CLASS_COUNT_CONSTRUCTORS = 2;
         public static final int PARAMETERS_IN_CONSTRUCTOR_WITH_PARAMETERS = CLASS_COUNT_FIELDS;
     }

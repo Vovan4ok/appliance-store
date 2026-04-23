@@ -37,5 +37,7 @@ public interface OrderService {
 
     List<OrderRow> getOrderRows(Long orderId);
 
+    Optional<OrderRow> findOrderRowById(Long rowId);
+
     Optional<Orders> findPendingByClientEmail(String email);
 }

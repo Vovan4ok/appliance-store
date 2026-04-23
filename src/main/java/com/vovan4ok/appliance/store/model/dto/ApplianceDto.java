@@ -41,4 +41,7 @@ public class ApplianceDto {
 
     @NotNull
     private BigDecimal price;
+
+    @NotNull
+    private Integer stock;
 }

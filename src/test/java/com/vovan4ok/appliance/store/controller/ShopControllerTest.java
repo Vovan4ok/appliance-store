@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -64,7 +65,7 @@ class ShopControllerTest {
 
     @Test
     void catalog_returnsShopViewWithAttributes() throws Exception {
-        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), any(Pageable.class)))
+        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), anyBoolean(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
         when(manufacturerService.findAll()).thenReturn(List.of(new Manufacturer(1L, "Samsung")));
         when(orderService.findPendingByClientEmail(anyString())).thenReturn(Optional.empty());
@@ -82,7 +83,7 @@ class ShopControllerTest {
     void catalog_withCartItems_populatesCartCount() throws Exception {
         Orders order = buildPendingOrder(1L);
         order.getOrderRowSet().add(new OrderRow());
-        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), any(Pageable.class)))
+        when(applianceService.findAll(any(), any(), any(), any(), any(), any(), anyBoolean(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
         when(manufacturerService.findAll()).thenReturn(List.of());
         when(orderService.findPendingByClientEmail("client@mail.com")).thenReturn(Optional.of(order));
@@ -97,6 +98,7 @@ class ShopControllerTest {
         Appliance appliance = new Appliance();
         appliance.setId(2L);
         appliance.setPrice(BigDecimal.valueOf(99));
+        appliance.setStock(10);
         Orders order = buildPendingOrder(1L);
 
         when(applianceService.findById(2L)).thenReturn(Optional.of(appliance));
@@ -117,6 +119,7 @@ class ShopControllerTest {
         Appliance appliance = new Appliance();
         appliance.setId(2L);
         appliance.setPrice(BigDecimal.valueOf(99));
+        appliance.setStock(10);
         Client client = new Client(3L, "Test", "client@mail.com", "hash", "1111");
         Orders newOrder = buildPendingOrder(10L);
 
@@ -170,6 +173,12 @@ class ShopControllerTest {
 
     @Test
     void updateCartRow_redirectsToCart() throws Exception {
+        Appliance appliance = new Appliance();
+        appliance.setStock(10);
+        OrderRow row = new OrderRow();
+        row.setAppliance(appliance);
+        when(orderService.findOrderRowById(3L)).thenReturn(Optional.of(row));
+
         mockMvc.perform(post("/shop/cart/rows/3/update")
                         .param("number", "5")
                         .with(csrf()))

@@ -44,53 +44,30 @@ public class ShopController {
                           @RequestParam(required = false) BigDecimal maxPrice,
                           @RequestParam(defaultValue = "name") String sortBy,
                           @RequestParam(defaultValue = "asc") String sortDir,
+                          @RequestParam(defaultValue = "false") boolean inStockOnly,
                           Authentication auth) {
-
-        Sort sort = sortDir.equalsIgnoreCase("desc")
-                ? Sort.by(sortBy).descending()
-                : Sort.by(sortBy).ascending();
-
-        Page<Appliance> result = applianceService.findAll(
-                name, category, powerType, manufacturerId, minPrice, maxPrice,
-                PageRequest.of(page, size, sort)
-        );
-
-        model.addAttribute("appliances", result.getContent());
-        model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", result.getTotalPages());
-
-        model.addAttribute("filterName", name);
-        model.addAttribute("filterCategory", category);
-        model.addAttribute("filterPowerType", powerType);
-        model.addAttribute("filterManufacturerId", manufacturerId);
-        model.addAttribute("filterMinPrice", minPrice);
-        model.addAttribute("filterMaxPrice", maxPrice);
-        model.addAttribute("sortBy", sortBy);
-        model.addAttribute("sortDir", sortDir);
-
-        model.addAttribute("categories", Category.values());
-        model.addAttribute("powerTypes", PowerType.values());
-        model.addAttribute("manufacturers", manufacturerService.findAll());
-
-        if (auth != null) {
-            int cartCount = orderService.findPendingByClientEmail(auth.getName())
-                    .map(o -> o.getOrderRowSet().size())
-                    .orElse(0);
-            model.addAttribute("cartCount", cartCount);
-        }
-
+        populateCatalog(model, page, size, name, category, powerType, manufacturerId,
+                minPrice, maxPrice, sortBy, sortDir, inStockOnly, auth);
         log.debug("GET /shop page={} size={} name={} category={} powerType={} manufacturerId={} sortBy={} sortDir={}",
                 page, size, name, category, powerType, manufacturerId, sortBy, sortDir);
-
         return "shop/shop";
     }
 
     @PostMapping("/add-to-cart")
     public String addToCart(@RequestParam Long applianceId,
                             @RequestParam(defaultValue = "1") Long quantity,
-                            Authentication auth) {
+                            Authentication auth,
+                            Model model) {
         Appliance appliance = applianceService.findById(applianceId)
                 .orElseThrow(() -> new IllegalArgumentException("Appliance not found: " + applianceId));
+
+        int stock = appliance.getStock() != null ? appliance.getStock() : 0;
+        if (quantity > stock) {
+            populateCatalog(model, 0, 6, null, null, null, null, null, null, "name", "asc", false, auth);
+            model.addAttribute("stockError", applianceId);
+            model.addAttribute("currentUri", "/shop");
+            return "shop/shop";
+        }
 
         Orders order = orderService.findPendingByClientEmail(auth.getName())
                 .orElseGet(() -> {
@@ -127,9 +104,26 @@ public class ShopController {
 
     @PostMapping("/cart/rows/{rowId}/update")
     public String updateCartRow(@PathVariable Long rowId,
-                                @RequestParam Long number) {
+                                @RequestParam Long number,
+                                Authentication auth,
+                                Model model) {
         log.info("Updating cart row id={} quantity={}", rowId, number);
-        orderService.updateOrderRowQuantity(rowId, number);
+        boolean exceeded = orderService.findOrderRowById(rowId).map(row -> {
+            int stock = row.getAppliance().getStock() != null ? row.getAppliance().getStock() : 0;
+            if (number > stock) return true;
+            orderService.updateOrderRowQuantity(rowId, number);
+            return false;
+        }).orElse(false);
+
+        if (exceeded) {
+            Orders order = auth != null
+                    ? orderService.findPendingByClientEmail(auth.getName()).orElse(null)
+                    : null;
+            model.addAttribute("order", order);
+            model.addAttribute("stockError", rowId);
+            model.addAttribute("currentUri", "/shop/cart");
+            return "shop/cart";
+        }
         return "redirect:/shop/cart";
     }
 
@@ -145,5 +139,39 @@ public class ShopController {
         log.info("Cancelling order id={}", orderId);
         orderService.delete(orderId);
         return "redirect:/shop";
+    }
+
+    private void populateCatalog(Model model, int page, int size, String name,
+                                  Category category, PowerType powerType, Long manufacturerId,
+                                  BigDecimal minPrice, BigDecimal maxPrice,
+                                  String sortBy, String sortDir, boolean inStockOnly,
+                                  Authentication auth) {
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+        Page<Appliance> result = applianceService.findAll(
+                name, category, powerType, manufacturerId, minPrice, maxPrice, inStockOnly,
+                PageRequest.of(page, size, sort));
+        model.addAttribute("appliances", result.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", result.getTotalPages());
+        model.addAttribute("filterName", name);
+        model.addAttribute("filterCategory", category);
+        model.addAttribute("filterPowerType", powerType);
+        model.addAttribute("filterManufacturerId", manufacturerId);
+        model.addAttribute("filterMinPrice", minPrice);
+        model.addAttribute("filterMaxPrice", maxPrice);
+        model.addAttribute("sortBy", sortBy);
+        model.addAttribute("sortDir", sortDir);
+        model.addAttribute("filterInStockOnly", inStockOnly);
+        model.addAttribute("categories", Category.values());
+        model.addAttribute("powerTypes", PowerType.values());
+        model.addAttribute("manufacturers", manufacturerService.findAll());
+        if (auth != null) {
+            int cartCount = orderService.findPendingByClientEmail(auth.getName())
+                    .map(o -> o.getOrderRowSet().size())
+                    .orElse(0);
+            model.addAttribute("cartCount", cartCount);
+        }
     }
 }

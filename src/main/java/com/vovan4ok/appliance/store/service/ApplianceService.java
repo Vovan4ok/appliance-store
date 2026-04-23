@@ -23,6 +23,7 @@ public interface ApplianceService {
             Long manufacturerId,
             BigDecimal minPrice,
             BigDecimal maxPrice,
+            boolean inStockOnly,
             Pageable pageable
     );
 
