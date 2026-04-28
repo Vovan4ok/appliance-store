@@ -1,3 +1,4 @@
+
 HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar
@@ -34,3 +35,6 @@ build/
 
 ### Environment secrets ###
 .env
+
+### Uploaded files (runtime data — persisted via Docker volume in prod) ###
+uploads/
