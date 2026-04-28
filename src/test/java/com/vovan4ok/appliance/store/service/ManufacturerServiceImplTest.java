@@ -28,9 +28,16 @@ class ManufacturerServiceImplTest {
     @InjectMocks
     ManufacturerServiceImpl manufacturerService;
 
+    private static Manufacturer mfr(Long id, String name) {
+        Manufacturer m = new Manufacturer();
+        m.setId(id);
+        m.setName(name);
+        return m;
+    }
+
     @Test
     void findAll_returnsList() {
-        List<Manufacturer> manufacturers = List.of(new Manufacturer(1L, "Samsung"), new Manufacturer(2L, "LG"));
+        List<Manufacturer> manufacturers = List.of(mfr(1L, "Samsung"), mfr(2L, "LG"));
         when(manufacturerRepository.findAll()).thenReturn(manufacturers);
 
         List<Manufacturer> result = manufacturerService.findAll();
@@ -42,7 +49,7 @@ class ManufacturerServiceImplTest {
     @Test
     void findAll_pageable_returnsPage() {
         Pageable pageable = PageRequest.of(0, 5);
-        Page<Manufacturer> page = new PageImpl<>(List.of(new Manufacturer(1L, "Samsung")));
+        Page<Manufacturer> page = new PageImpl<>(List.of(mfr(1L, "Samsung")));
         when(manufacturerRepository.findAll(pageable)).thenReturn(page);
 
         Page<Manufacturer> result = manufacturerService.findAll(pageable);
@@ -53,7 +60,7 @@ class ManufacturerServiceImplTest {
 
     @Test
     void findById_found_returnsOptional() {
-        Manufacturer manufacturer = new Manufacturer(1L, "Samsung");
+        Manufacturer manufacturer = mfr(1L, "Samsung");
         when(manufacturerRepository.findById(1L)).thenReturn(Optional.of(manufacturer));
 
         Optional<Manufacturer> result = manufacturerService.findById(1L);
@@ -73,8 +80,8 @@ class ManufacturerServiceImplTest {
 
     @Test
     void save_delegatesToRepository() {
-        Manufacturer manufacturer = new Manufacturer(null, "Bosch");
-        Manufacturer saved = new Manufacturer(1L, "Bosch");
+        Manufacturer manufacturer = mfr(null, "Bosch");
+        Manufacturer saved = mfr(1L, "Bosch");
         when(manufacturerRepository.save(manufacturer)).thenReturn(saved);
 
         Manufacturer result = manufacturerService.save(manufacturer);

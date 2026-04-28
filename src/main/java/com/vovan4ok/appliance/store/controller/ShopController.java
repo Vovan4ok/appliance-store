@@ -5,6 +5,8 @@ import com.vovan4ok.appliance.store.model.Category;
 import com.vovan4ok.appliance.store.model.Client;
 import com.vovan4ok.appliance.store.model.Orders;
 import com.vovan4ok.appliance.store.model.PowerType;
+import com.vovan4ok.appliance.store.model.dto.ApplianceDto;
+import com.vovan4ok.appliance.store.model.dto.ManufacturerDto;
 import com.vovan4ok.appliance.store.service.ApplianceService;
 import com.vovan4ok.appliance.store.service.ClientService;
 import com.vovan4ok.appliance.store.service.ManufacturerService;
@@ -152,7 +154,7 @@ public class ShopController {
         Page<Appliance> result = applianceService.findAll(
                 name, category, powerType, manufacturerId, minPrice, maxPrice, inStockOnly, false,
                 PageRequest.of(page, size, sort));
-        model.addAttribute("appliances", result.getContent());
+        model.addAttribute("appliances", result.getContent().stream().map(ApplianceDto::from).toList());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", result.getTotalPages());
         model.addAttribute("filterName", name);
@@ -166,7 +168,7 @@ public class ShopController {
         model.addAttribute("filterInStockOnly", inStockOnly);
         model.addAttribute("categories", Category.values());
         model.addAttribute("powerTypes", PowerType.values());
-        model.addAttribute("manufacturers", manufacturerService.findAll());
+        model.addAttribute("manufacturers", manufacturerService.findAll().stream().map(ManufacturerDto::from).toList());
         if (auth != null) {
             int cartCount = orderService.findPendingByClientEmail(auth.getName())
                     .map(o -> o.getOrderRowSet().size())

@@ -2,6 +2,7 @@ package com.vovan4ok.appliance.store.controller;
 
 import com.vovan4ok.appliance.store.model.Client;
 import com.vovan4ok.appliance.store.model.dto.ClientDto;
+import com.vovan4ok.appliance.store.model.dto.ClientViewDto;
 import com.vovan4ok.appliance.store.service.ClientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,7 @@ public class ClientController {
                        @RequestParam(defaultValue = "5") int size) {
         log.debug("GET /clients page={} size={}", page, size);
         Page<Client> result = clientService.findAll(PageRequest.of(page, size, Sort.by("name")));
-        model.addAttribute("clients", result.getContent());
+        model.addAttribute("clients", result.getContent().stream().map(ClientViewDto::from).toList());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", result.getTotalPages());
         return "client/clients";

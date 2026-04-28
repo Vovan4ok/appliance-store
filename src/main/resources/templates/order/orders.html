@@ -41,10 +41,10 @@
                     <td class="text-muted small fw-semibold" th:text="${order.id}"></td>
                     <td sec:authorize="hasRole('EMPLOYEE')">
                         <i class="bi bi-person-circle text-secondary me-1"></i>
-                        <span th:text="${order.client != null ? order.client.name : '—'}"></span>
+                        <span th:text="${order.clientName != null ? order.clientName : '—'}"></span>
                     </td>
                     <td class="d-none d-md-table-cell text-muted">
-                        <span th:text="${order.employee != null ? order.employee.name : '—'}"></span>
+                        <span th:text="${order.employeeName != null ? order.employeeName : '—'}"></span>
                     </td>
                     <td>
                         <span th:if="${order.approved == true}" class="badge bg-success">

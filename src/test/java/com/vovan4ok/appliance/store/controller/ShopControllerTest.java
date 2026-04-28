@@ -67,7 +67,10 @@ class ShopControllerTest {
     void catalog_returnsShopViewWithAttributes() throws Exception {
         when(applianceService.findAll(any(), any(), any(), any(), any(), any(), anyBoolean(), anyBoolean(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
-        when(manufacturerService.findAll()).thenReturn(List.of(new Manufacturer(1L, "Samsung")));
+        Manufacturer samsung = new Manufacturer();
+        samsung.setId(1L);
+        samsung.setName("Samsung");
+        when(manufacturerService.findAll()).thenReturn(List.of(samsung));
         when(orderService.findPendingByClientEmail(anyString())).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/shop"))

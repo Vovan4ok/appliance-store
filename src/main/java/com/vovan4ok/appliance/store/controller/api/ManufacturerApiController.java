@@ -51,10 +51,8 @@ public class ManufacturerApiController {
     @PostMapping
     @Operation(summary = "Create a new manufacturer (EMPLOYEE only)")
     public ResponseEntity<ManufacturerResponse> create(@Valid @RequestBody ManufacturerRequest request) {
-        Manufacturer manufacturer = new Manufacturer();
-        manufacturer.setName(request.getName());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ManufacturerResponse.from(manufacturerService.save(manufacturer)));
+                .body(ManufacturerResponse.from(manufacturerService.save(applyRequest(new Manufacturer(), request))));
     }
 
     @PutMapping("/{id}")
@@ -62,8 +60,7 @@ public class ManufacturerApiController {
     public ManufacturerResponse update(@PathVariable Long id, @Valid @RequestBody ManufacturerRequest request) {
         Manufacturer manufacturer = manufacturerService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Manufacturer not found: " + id));
-        manufacturer.setName(request.getName());
-        return ManufacturerResponse.from(manufacturerService.save(manufacturer));
+        return ManufacturerResponse.from(manufacturerService.save(applyRequest(manufacturer, request)));
     }
 
     @DeleteMapping("/{id}")
@@ -73,5 +70,15 @@ public class ManufacturerApiController {
         manufacturerService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Manufacturer not found: " + id));
         manufacturerService.delete(id);
+    }
+
+    private Manufacturer applyRequest(Manufacturer m, ManufacturerRequest request) {
+        m.setName(request.getName());
+        m.setCountry(request.getCountry());
+        m.setWebsite(request.getWebsite());
+        m.setDescription(request.getDescription());
+        m.setLogoPath(request.getLogoPath());
+        m.setFoundedYear(request.getFoundedYear());
+        return m;
     }
 }

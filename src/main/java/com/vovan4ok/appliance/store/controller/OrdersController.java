@@ -5,7 +5,12 @@ import com.vovan4ok.appliance.store.model.Category;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.Orders;
 import com.vovan4ok.appliance.store.model.PowerType;
+import com.vovan4ok.appliance.store.model.dto.ApplianceDto;
+import com.vovan4ok.appliance.store.model.dto.ClientViewDto;
+import com.vovan4ok.appliance.store.model.dto.EmployeeViewDto;
+import com.vovan4ok.appliance.store.model.dto.ManufacturerDto;
 import com.vovan4ok.appliance.store.model.dto.OrderDto;
+import com.vovan4ok.appliance.store.model.dto.OrderViewDto;
 import com.vovan4ok.appliance.store.service.ApplianceService;
 import com.vovan4ok.appliance.store.service.ClientService;
 import com.vovan4ok.appliance.store.service.EmployeeService;
@@ -47,7 +52,7 @@ public class OrdersController {
         Page<Orders> result = isEmployee
                 ? orderService.findAll(PageRequest.of(page, size, Sort.by("id")))
                 : orderService.findByClientEmail(auth.getName(), PageRequest.of(page, size, Sort.by("id")));
-        model.addAttribute("orders", result.getContent());
+        model.addAttribute("orders", result.getContent().stream().map(OrderViewDto::from).toList());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", result.getTotalPages());
         model.addAttribute("isEmployee", isEmployee);
@@ -58,8 +63,8 @@ public class OrdersController {
     public String addForm(Model model) {
         log.debug("GET /orders/add");
         model.addAttribute("order", new OrderDto());
-        model.addAttribute("clients", clientService.findAll());
-        model.addAttribute("employees", employeeService.findAll());
+        model.addAttribute("clients", clientService.findAll().stream().map(ClientViewDto::from).toList());
+        model.addAttribute("employees", employeeService.findAll().stream().map(EmployeeViewDto::from).toList());
         return "order/newOrder";
     }
 
@@ -79,8 +84,9 @@ public class OrdersController {
         log.debug("GET /orders/{}/edit", id);
         Orders order = orderService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + id));
-        model.addAttribute("order", order);
-        model.addAttribute("rows", order.getOrderRowSet());
+        OrderViewDto orderDto = OrderViewDto.from(order);
+        model.addAttribute("order", orderDto);
+        model.addAttribute("rows", orderDto.getRows());
         return "order/editOrder";
     }
 
@@ -96,7 +102,8 @@ public class OrdersController {
                                   @RequestParam(required = false) BigDecimal minPrice,
                                   @RequestParam(required = false) BigDecimal maxPrice,
                                   @RequestParam(defaultValue = "name") String sortBy,
-                                  @RequestParam(defaultValue = "asc") String sortDir) {
+                                  @RequestParam(defaultValue = "asc") String sortDir,
+                                  @RequestParam(defaultValue = "false") boolean inStockOnly) {
         log.debug("GET /orders/{}/choice-appliance page={} size={}", id, page, size);
 
         Sort sort = sortDir.equalsIgnoreCase("desc")
@@ -104,11 +111,11 @@ public class OrdersController {
                 : Sort.by(sortBy).ascending();
 
         Page<Appliance> result =
-                applianceService.findAll(name, category, powerType, manufacturerId, minPrice, maxPrice, false, false,
+                applianceService.findAll(name, category, powerType, manufacturerId, minPrice, maxPrice, inStockOnly, false,
                         PageRequest.of(page, size, sort));
 
         model.addAttribute("ordersId", id);
-        model.addAttribute("appliances", result.getContent());
+        model.addAttribute("appliances", result.getContent().stream().map(ApplianceDto::from).toList());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", result.getTotalPages());
 
@@ -120,10 +127,11 @@ public class OrdersController {
         model.addAttribute("filterMaxPrice", maxPrice);
         model.addAttribute("sortBy", sortBy);
         model.addAttribute("sortDir", sortDir);
+        model.addAttribute("filterInStockOnly", inStockOnly);
 
         model.addAttribute("categories", Category.values());
         model.addAttribute("powerTypes", PowerType.values());
-        model.addAttribute("manufacturers", manufacturerService.findAll());
+        model.addAttribute("manufacturers", manufacturerService.findAll().stream().map(ManufacturerDto::from).toList());
 
         return "order/choiceAppliance";
     }
@@ -173,8 +181,9 @@ public class OrdersController {
             log.warn("Approval blocked for order id={}: {}", id, e.getMessage());
             Orders order = orderService.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Order not found: " + id));
-            model.addAttribute("order", order);
-            model.addAttribute("rows", order.getOrderRowSet());
+            OrderViewDto orderDto = OrderViewDto.from(order);
+            model.addAttribute("order", orderDto);
+            model.addAttribute("rows", orderDto.getRows());
             model.addAttribute("approvalError", true);
             model.addAttribute("currentUri", "/orders/" + id + "/edit");
             return "order/editOrder";

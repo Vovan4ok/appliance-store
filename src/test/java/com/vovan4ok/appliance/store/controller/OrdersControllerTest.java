@@ -144,7 +144,10 @@ class OrdersControllerTest {
     void choiceAppliance_returnsChoiceView() throws Exception {
         when(applianceService.findAll(any(), any(), any(), any(), any(), any(), anyBoolean(), anyBoolean(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
-        when(manufacturerService.findAll()).thenReturn(List.of(new Manufacturer(1L, "Samsung")));
+        Manufacturer samsung = new Manufacturer();
+        samsung.setId(1L);
+        samsung.setName("Samsung");
+        when(manufacturerService.findAll()).thenReturn(List.of(samsung));
 
         mockMvc.perform(get("/orders/1/choice-appliance"))
                 .andExpect(status().isOk())

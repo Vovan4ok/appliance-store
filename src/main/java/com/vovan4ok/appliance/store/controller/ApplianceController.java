@@ -4,6 +4,7 @@ import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.Category;
 import com.vovan4ok.appliance.store.model.PowerType;
 import com.vovan4ok.appliance.store.model.dto.ApplianceDto;
+import com.vovan4ok.appliance.store.model.dto.ManufacturerDto;
 import com.vovan4ok.appliance.store.service.ApplianceService;
 import com.vovan4ok.appliance.store.service.ManufacturerService;
 import jakarta.validation.Valid;
@@ -12,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -53,7 +53,7 @@ public class ApplianceController {
                 name, category, powerType, manufacturerId, minPrice, maxPrice, false, outOfStockOnly,
                 PageRequest.of(page, size, sort));
 
-        model.addAttribute("appliances", result.getContent());
+        model.addAttribute("appliances", result.getContent().stream().map(ApplianceDto::from).toList());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", result.getTotalPages());
 
@@ -69,7 +69,7 @@ public class ApplianceController {
 
         model.addAttribute("categories", Category.values());
         model.addAttribute("powerTypes", PowerType.values());
-        model.addAttribute("manufacturers", manufacturerService.findAll());
+        model.addAttribute("manufacturers", manufacturerService.findAll().stream().map(ManufacturerDto::from).toList());
 
         return "appliance/appliances";
     }
@@ -78,7 +78,7 @@ public class ApplianceController {
     public String addForm(Model model) {
         log.debug("GET /appliances/add");
         model.addAttribute("appliance", new ApplianceDto());
-        model.addAttribute("manufacturers", manufacturerService.findAll());
+        model.addAttribute("manufacturers", manufacturerService.findAll().stream().map(ManufacturerDto::from).toList());
         model.addAttribute("categories", Category.values());
         model.addAttribute("powerTypes", PowerType.values());
         return "appliance/newAppliance";
@@ -90,7 +90,7 @@ public class ApplianceController {
                        Model model) {
         if (result.hasErrors()) {
             log.debug("Validation errors saving appliance: {}", result.getAllErrors());
-            model.addAttribute("manufacturers", manufacturerService.findAll());
+            model.addAttribute("manufacturers", manufacturerService.findAll().stream().map(ManufacturerDto::from).toList());
             model.addAttribute("categories", Category.values());
             model.addAttribute("powerTypes", PowerType.values());
             return "appliance/newAppliance";
@@ -120,29 +120,13 @@ public class ApplianceController {
         log.debug("GET /appliances/{}/edit", id);
         Appliance appliance = applianceService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Appliance not found: " + id));
-        ApplianceDto dto = getApplianceDto(appliance);
+        ApplianceDto dto = ApplianceDto.from(appliance);
         model.addAttribute("appliance", dto);
         model.addAttribute("applianceId", id);
-        model.addAttribute("manufacturers", manufacturerService.findAll());
+        model.addAttribute("manufacturers", manufacturerService.findAll().stream().map(ManufacturerDto::from).toList());
         model.addAttribute("categories", Category.values());
         model.addAttribute("powerTypes", PowerType.values());
         return "appliance/editAppliance";
-    }
-
-    @NonNull
-    private static ApplianceDto getApplianceDto(Appliance appliance) {
-        ApplianceDto dto = new ApplianceDto();
-        dto.setName(appliance.getName());
-        dto.setCategory(appliance.getCategory());
-        dto.setModel(appliance.getModel());
-        dto.setManufacturerId(appliance.getManufacturer() != null ? appliance.getManufacturer().getId() : null);
-        dto.setPowerType(appliance.getPowerType());
-        dto.setCharacteristic(appliance.getCharacteristic());
-        dto.setDescription(appliance.getDescription());
-        dto.setPower(appliance.getPower());
-        dto.setPrice(appliance.getPrice());
-        dto.setStock(appliance.getStock());
-        return dto;
     }
 
     @PostMapping("/{id}/update")
@@ -153,7 +137,7 @@ public class ApplianceController {
         if (result.hasErrors()) {
             log.debug("Validation errors updating appliance id={}: {}", id, result.getAllErrors());
             model.addAttribute("applianceId", id);
-            model.addAttribute("manufacturers", manufacturerService.findAll());
+            model.addAttribute("manufacturers", manufacturerService.findAll().stream().map(ManufacturerDto::from).toList());
             model.addAttribute("categories", Category.values());
             model.addAttribute("powerTypes", PowerType.values());
             return "appliance/editAppliance";

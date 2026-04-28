@@ -48,6 +48,13 @@ class ApplianceApiControllerTest {
     @MockBean
     UserDetailsService userDetailsService;
 
+    private static Manufacturer mfr(Long id, String name) {
+        Manufacturer m = new Manufacturer();
+        m.setId(id);
+        m.setName(name);
+        return m;
+    }
+
     private Appliance sampleAppliance() {
         Appliance a = new Appliance();
         a.setId(1L);
@@ -55,7 +62,7 @@ class ApplianceApiControllerTest {
         a.setModel("TA-100");
         a.setCategory(Category.BIG);
         a.setPowerType(PowerType.AC220);
-        a.setManufacturer(new Manufacturer(1L, "Samsung"));
+        a.setManufacturer(mfr(1L, "Samsung"));
         a.setPrice(new BigDecimal("499.99"));
         a.setStock(10);
         return a;
@@ -96,8 +103,7 @@ class ApplianceApiControllerTest {
 
     @Test
     void create_validRequest_returns201() throws Exception {
-        Manufacturer manufacturer = new Manufacturer(1L, "Samsung");
-        when(manufacturerService.findById(1L)).thenReturn(Optional.of(manufacturer));
+        when(manufacturerService.findById(1L)).thenReturn(Optional.of(mfr(1L, "Samsung")));
         when(applianceService.save(any())).thenReturn(sampleAppliance());
 
         ApplianceRequest request = new ApplianceRequest();
@@ -133,12 +139,11 @@ class ApplianceApiControllerTest {
 
     @Test
     void update_found_returnsUpdated() throws Exception {
-        Manufacturer manufacturer = new Manufacturer(1L, "Samsung");
         Appliance updated = sampleAppliance();
         updated.setName("Updated Name");
 
         when(applianceService.findById(1L)).thenReturn(Optional.of(sampleAppliance()));
-        when(manufacturerService.findById(1L)).thenReturn(Optional.of(manufacturer));
+        when(manufacturerService.findById(1L)).thenReturn(Optional.of(mfr(1L, "Samsung")));
         when(applianceService.save(any())).thenReturn(updated);
 
         ApplianceRequest request = new ApplianceRequest();

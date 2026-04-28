@@ -33,7 +33,7 @@ public class TestConstants {
 
     static class Manufacturer {
         public static final String CLASS_NAME = "Manufacturer";
-        public static final int CLASS_COUNT_FIELDS = 2;
+        public static final int CLASS_COUNT_FIELDS = 7;
         public static final String FIELD_ID = "id";
         public static final String FIELD_NAME = "name";
         public static final int CLASS_COUNT_CONSTRUCTORS = 2;

@@ -40,10 +40,17 @@ class ManufacturerApiControllerTest {
     @MockBean
     UserDetailsService userDetailsService;
 
+    private static Manufacturer mfr(Long id, String name) {
+        Manufacturer m = new Manufacturer();
+        m.setId(id);
+        m.setName(name);
+        return m;
+    }
+
     @Test
     void list_returnsPageOfManufacturers() throws Exception {
         when(manufacturerService.findAll(any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(new Manufacturer(1L, "Samsung"))));
+                .thenReturn(new PageImpl<>(List.of(mfr(1L, "Samsung"))));
 
         mockMvc.perform(get("/api/v1/manufacturers").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -54,7 +61,7 @@ class ManufacturerApiControllerTest {
 
     @Test
     void getById_found_returnsManufacturer() throws Exception {
-        when(manufacturerService.findById(1L)).thenReturn(Optional.of(new Manufacturer(1L, "Samsung")));
+        when(manufacturerService.findById(1L)).thenReturn(Optional.of(mfr(1L, "Samsung")));
 
         mockMvc.perform(get("/api/v1/manufacturers/1").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -73,7 +80,7 @@ class ManufacturerApiControllerTest {
 
     @Test
     void create_validRequest_returns201() throws Exception {
-        when(manufacturerService.save(any())).thenReturn(new Manufacturer(2L, "Bosch"));
+        when(manufacturerService.save(any())).thenReturn(mfr(2L, "Bosch"));
 
         ManufacturerRequest request = new ManufacturerRequest();
         request.setName("Bosch");
@@ -104,8 +111,8 @@ class ManufacturerApiControllerTest {
 
     @Test
     void update_found_returnsUpdated() throws Exception {
-        when(manufacturerService.findById(1L)).thenReturn(Optional.of(new Manufacturer(1L, "Samsung")));
-        when(manufacturerService.save(any())).thenReturn(new Manufacturer(1L, "Samsung Updated"));
+        when(manufacturerService.findById(1L)).thenReturn(Optional.of(mfr(1L, "Samsung")));
+        when(manufacturerService.save(any())).thenReturn(mfr(1L, "Samsung Updated"));
 
         ManufacturerRequest request = new ManufacturerRequest();
         request.setName("Samsung Updated");
@@ -134,7 +141,7 @@ class ManufacturerApiControllerTest {
 
     @Test
     void delete_found_returns204() throws Exception {
-        when(manufacturerService.findById(1L)).thenReturn(Optional.of(new Manufacturer(1L, "Samsung")));
+        when(manufacturerService.findById(1L)).thenReturn(Optional.of(mfr(1L, "Samsung")));
 
         mockMvc.perform(delete("/api/v1/manufacturers/1").with(csrf()))
                 .andExpect(status().isNoContent());

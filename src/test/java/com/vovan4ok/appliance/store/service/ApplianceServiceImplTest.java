@@ -34,9 +34,15 @@ class ApplianceServiceImplTest {
     @InjectMocks
     ApplianceServiceImpl applianceService;
 
+    private static Manufacturer mfr(Long id, String name) {
+        Manufacturer m = new Manufacturer();
+        m.setId(id);
+        m.setName(name);
+        return m;
+    }
+
     private Appliance buildAppliance(Long id) {
-        Manufacturer m = new Manufacturer(1L, "Samsung");
-        return new Appliance(id, "Fridge", Category.BIG, "RB37", m,
+        return new Appliance(id, "Fridge", Category.BIG, "RB37", mfr(1L, "Samsung"),
                 PowerType.AC220, "A++", "Big fridge", 100, BigDecimal.valueOf(500), 10);
     }
 

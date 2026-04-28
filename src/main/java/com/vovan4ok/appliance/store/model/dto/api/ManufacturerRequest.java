@@ -12,4 +12,9 @@ public class ManufacturerRequest {
 
     @NotBlank
     private String name;
+    private String country;
+    private String website;
+    private String description;
+    private String logoPath;
+    private Integer foundedYear;
 }

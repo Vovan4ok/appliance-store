@@ -44,9 +44,15 @@ class ApplianceControllerTest {
     @MockBean
     UserDetailsService userDetailsService;
 
+    private static Manufacturer mfr(Long id, String name) {
+        Manufacturer m = new Manufacturer();
+        m.setId(id);
+        m.setName(name);
+        return m;
+    }
+
     private Appliance buildAppliance() {
-        Manufacturer m = new Manufacturer(1L, "Samsung");
-        return new Appliance(1L, "Fridge", Category.BIG, "RB37", m,
+        return new Appliance(1L, "Fridge", Category.BIG, "RB37", mfr(1L, "Samsung"),
                 PowerType.AC220, "A++", "Big fridge", 100, BigDecimal.valueOf(500), 10);
     }
 
@@ -54,7 +60,7 @@ class ApplianceControllerTest {
     void list_returnsAppliancesView() throws Exception {
         when(applianceService.findAll(any(), any(), any(), any(), any(), any(), anyBoolean(), anyBoolean(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(buildAppliance())));
-        when(manufacturerService.findAll()).thenReturn(List.of(new Manufacturer(1L, "Samsung")));
+        when(manufacturerService.findAll()).thenReturn(List.of(mfr(1L, "Samsung")));
 
         mockMvc.perform(get("/appliances"))
                 .andExpect(status().isOk())
@@ -65,7 +71,7 @@ class ApplianceControllerTest {
 
     @Test
     void addForm_returnsNewApplianceViewWithLookups() throws Exception {
-        when(manufacturerService.findAll()).thenReturn(List.of(new Manufacturer(1L, "Samsung")));
+        when(manufacturerService.findAll()).thenReturn(List.of(mfr(1L, "Samsung")));
 
         mockMvc.perform(get("/appliances/add"))
                 .andExpect(status().isOk())
@@ -75,7 +81,7 @@ class ApplianceControllerTest {
 
     @Test
     void save_validAppliance_redirectsToList() throws Exception {
-        when(manufacturerService.findById(1L)).thenReturn(Optional.of(new Manufacturer(1L, "Samsung")));
+        when(manufacturerService.findById(1L)).thenReturn(Optional.of(mfr(1L, "Samsung")));
         when(applianceService.save(any(Appliance.class))).thenReturn(buildAppliance());
 
         mockMvc.perform(post("/appliances/add")
@@ -98,7 +104,7 @@ class ApplianceControllerTest {
 
     @Test
     void save_missingName_returnsFormWithErrors() throws Exception {
-        when(manufacturerService.findAll()).thenReturn(List.of(new Manufacturer(1L, "Samsung")));
+        when(manufacturerService.findAll()).thenReturn(List.of(mfr(1L, "Samsung")));
 
         mockMvc.perform(post("/appliances/add")
                         .param("name", "")
@@ -121,7 +127,7 @@ class ApplianceControllerTest {
     @Test
     void editForm_found_returnsEditView() throws Exception {
         when(applianceService.findById(1L)).thenReturn(Optional.of(buildAppliance()));
-        when(manufacturerService.findAll()).thenReturn(List.of(new Manufacturer(1L, "Samsung")));
+        when(manufacturerService.findAll()).thenReturn(List.of(mfr(1L, "Samsung")));
 
         mockMvc.perform(get("/appliances/1/edit"))
                 .andExpect(status().isOk())
@@ -141,7 +147,7 @@ class ApplianceControllerTest {
     @Test
     void update_validAppliance_redirectsToList() throws Exception {
         when(applianceService.findById(1L)).thenReturn(Optional.of(buildAppliance()));
-        when(manufacturerService.findById(1L)).thenReturn(Optional.of(new Manufacturer(1L, "Samsung")));
+        when(manufacturerService.findById(1L)).thenReturn(Optional.of(mfr(1L, "Samsung")));
         when(applianceService.save(any(Appliance.class))).thenReturn(buildAppliance());
 
         mockMvc.perform(post("/appliances/1/update")
@@ -162,7 +168,7 @@ class ApplianceControllerTest {
 
     @Test
     void update_invalidData_returnsFormWithErrors() throws Exception {
-        when(manufacturerService.findAll()).thenReturn(List.of(new Manufacturer(1L, "Samsung")));
+        when(manufacturerService.findAll()).thenReturn(List.of(mfr(1L, "Samsung")));
 
         mockMvc.perform(post("/appliances/1/update")
                         .param("name", "")

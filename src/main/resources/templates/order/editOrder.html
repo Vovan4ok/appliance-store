@@ -62,14 +62,14 @@
                     <span class="text-muted small d-block" th:text="#{object.order.client}">Client</span>
                     <span class="fw-semibold">
                         <i class="bi bi-person-circle me-1"></i>
-                        <span th:text="${order.client != null ? order.client.name : '—'}"></span>
+                        <span th:text="${order.clientName != null ? order.clientName : '—'}"></span>
                     </span>
                 </div>
                 <div class="col-sm-4">
                     <span class="text-muted small d-block" th:text="#{object.order.employee}">Employee</span>
                     <span class="fw-semibold">
                         <i class="bi bi-person-badge me-1"></i>
-                        <span th:text="${order.employee != null ? order.employee.name : '—'}"></span>
+                        <span th:text="${order.employeeName != null ? order.employeeName : '—'}"></span>
                     </span>
                 </div>
                 <div class="col-sm-4">
@@ -117,14 +117,14 @@
                 </thead>
                 <tbody>
                 <tr th:each="row: ${rows}"
-                    th:classappend="${row.appliance.stock != null and row.appliance.stock == 0} ? 'table-warning'">
+                    th:classappend="${row.applianceStock != null and row.applianceStock == 0} ? 'table-warning'">
                     <td class="fw-semibold">
-                        <span th:text="${row.appliance.name}"></span>
-                        <span th:if="${row.appliance.stock != null and row.appliance.stock == 0}"
+                        <span th:text="${row.applianceName}"></span>
+                        <span th:if="${row.applianceStock != null and row.applianceStock == 0}"
                               class="badge bg-danger ms-1 small" th:text="#{shop.out.of.stock}">Out of stock</span>
                     </td>
                     <td class="d-none d-md-table-cell text-muted small"
-                        th:text="${row.appliance.manufacturer != null ? row.appliance.manufacturer.getName() : '—'}"></td>
+                        th:text="${row.manufacturerName != null ? row.manufacturerName : '—'}"></td>
                     <td class="text-center" style="min-width: 120px;">
                         <form th:unless="${locked}"
                               th:action="@{/orders/__${order.id}__/rows/__${row.id}__/update}"

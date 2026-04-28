@@ -33,14 +33,20 @@ class ManufacturerControllerTest {
     @MockBean
     ManufacturerService manufacturerService;
 
-    // Required so Spring Security context starts cleanly in the web slice
     @MockBean
     UserDetailsService userDetailsService;
+
+    private static Manufacturer mfr(Long id, String name) {
+        Manufacturer m = new Manufacturer();
+        m.setId(id);
+        m.setName(name);
+        return m;
+    }
 
     @Test
     void list_returnsManufacturersView() throws Exception {
         when(manufacturerService.findAll(any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(new Manufacturer(1L, "Samsung"))));
+                .thenReturn(new PageImpl<>(List.of(mfr(1L, "Samsung"))));
 
         mockMvc.perform(get("/manufacturers"))
                 .andExpect(status().isOk())
@@ -58,7 +64,7 @@ class ManufacturerControllerTest {
 
     @Test
     void save_validName_redirectsToList() throws Exception {
-        mockMvc.perform(post("/manufacturers/add-manufacturer")
+        mockMvc.perform(multipart("/manufacturers/add-manufacturer")
                         .param("name", "Bosch")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
@@ -69,7 +75,7 @@ class ManufacturerControllerTest {
 
     @Test
     void save_blankName_returnsFormWithErrors() throws Exception {
-        mockMvc.perform(post("/manufacturers/add-manufacturer")
+        mockMvc.perform(multipart("/manufacturers/add-manufacturer")
                         .param("name", "")
                         .with(csrf()))
                 .andExpect(status().isOk())
@@ -81,7 +87,7 @@ class ManufacturerControllerTest {
     @Test
     void editForm_found_returnsEditView() throws Exception {
         when(manufacturerService.findById(1L))
-                .thenReturn(Optional.of(new Manufacturer(1L, "Samsung")));
+                .thenReturn(Optional.of(mfr(1L, "Samsung")));
 
         mockMvc.perform(get("/manufacturers/1/edit"))
                 .andExpect(status().isOk())
@@ -101,9 +107,9 @@ class ManufacturerControllerTest {
     @Test
     void update_validName_redirectsToList() throws Exception {
         when(manufacturerService.findById(1L))
-                .thenReturn(Optional.of(new Manufacturer(1L, "Samsung")));
+                .thenReturn(Optional.of(mfr(1L, "Samsung")));
 
-        mockMvc.perform(post("/manufacturers/1/update")
+        mockMvc.perform(multipart("/manufacturers/1/update")
                         .param("name", "Samsung Updated")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
@@ -112,7 +118,7 @@ class ManufacturerControllerTest {
 
     @Test
     void update_blankName_returnsFormWithErrors() throws Exception {
-        mockMvc.perform(post("/manufacturers/1/update")
+        mockMvc.perform(multipart("/manufacturers/1/update")
                         .param("name", "")
                         .with(csrf()))
                 .andExpect(status().isOk())

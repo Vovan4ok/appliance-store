@@ -60,8 +60,8 @@
             min-height: 2.4em;
         }
         .badge-power-type { font-size: 0.7rem; }
-        .out-of-stock-wrapper { position: relative; }
-        .out-of-stock-wrapper .card {
+        .appliance-card { position: relative; }
+        .out-of-stock-card > :not(.out-of-stock-overlay) {
             filter: blur(1.5px);
             opacity: 0.6;
             pointer-events: none;
@@ -202,11 +202,12 @@
 
     <div th:if="${not #lists.isEmpty(appliances)}" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
         <div class="col" th:each="appliance : ${appliances}">
-            <div th:class="${appliance.stock != null and appliance.stock == 0} ? 'out-of-stock-wrapper h-100' : 'h-100'">
+            <div class="h-100">
+            <div class="card h-100 appliance-card shadow-sm"
+                 th:classappend="${appliance.stock != null and appliance.stock == 0} ? ' out-of-stock-card'">
                 <div th:if="${appliance.stock != null and appliance.stock == 0}" class="out-of-stock-overlay">
                     <span class="out-of-stock-badge" th:text="#{shop.out.of.stock}">Out of stock</span>
                 </div>
-            <div class="card h-100 appliance-card shadow-sm">
 
                 <div class="card-header bg-white border-bottom d-flex align-items-start justify-content-between gap-2 py-2">
                     <span class="card-title mb-0" th:text="${appliance.name}" th:title="${appliance.name}">Name</span>
@@ -226,7 +227,7 @@
                         <div class="info-row">
                             <span class="info-label" th:text="#{object.appliance.manufacturer}">Manufacturer</span>
                             <span class="info-value fw-semibold"
-                                  th:text="${appliance.manufacturer != null ? appliance.manufacturer.name : '—'}"></span>
+                                  th:text="${appliance.manufacturerName != null ? appliance.manufacturerName : '—'}"></span>
                         </div>
                         <div class="info-row">
                             <span class="info-label" th:text="#{object.appliance.model}">Model</span>

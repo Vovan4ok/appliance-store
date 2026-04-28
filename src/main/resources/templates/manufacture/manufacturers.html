@@ -29,6 +29,8 @@
                 <tr>
                     <th th:text="#{object.manufacturer.id}">ID</th>
                     <th th:text="#{object.manufacturer.name}">Name</th>
+                    <th class="d-none d-md-table-cell" th:text="#{object.manufacturer.country}">Country</th>
+                    <th class="d-none d-lg-table-cell" th:text="#{object.manufacturer.foundedYear}">Founded</th>
                     <th th:text="#{table.col.operations}">Operations</th>
                 </tr>
                 </thead>
@@ -36,9 +38,15 @@
                 <tr th:each="manufacturer: ${manufacturers}">
                     <td class="text-muted small" th:text="${manufacturer.id}"></td>
                     <td class="fw-semibold">
-                        <i class="bi bi-building text-secondary me-1"></i>
+                        <img th:if="${manufacturer.logoPath}"
+                             th:src="@{/uploads/__${manufacturer.logoPath}__}"
+                             class="me-2 rounded" style="height:24px; width:24px; object-fit:contain;"
+                             alt="">
+                        <i th:unless="${manufacturer.logoPath}" class="bi bi-building text-secondary me-1"></i>
                         <span th:text="${manufacturer.name}"></span>
                     </td>
+                    <td class="d-none d-md-table-cell text-muted" th:text="${manufacturer.country}"></td>
+                    <td class="d-none d-lg-table-cell text-muted" th:text="${manufacturer.foundedYear}"></td>
                     <td>
                         <a th:href="@{/manufacturers/__${manufacturer.id}__/delete}"
                            class="btn btn-sm btn-outline-danger"
@@ -54,7 +62,7 @@
                     </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(manufacturers)}">
-                    <td colspan="3" class="text-center text-muted py-4">
+                    <td colspan="5" class="text-center text-muted py-4">
                         <i class="bi bi-inbox me-1"></i>
                         <span th:text="#{table.empty}">No records found</span>
                     </td>

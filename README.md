@@ -7,7 +7,8 @@ A full-stack e-commerce web application for managing and selling home appliances
 ## Tech Stack
 
 - **Backend:** Spring Boot 3.2, Spring MVC, Spring Security, Spring Data JPA
-- **Auth:** Stateless JWT authentication (HttpOnly cookie)
+- **Auth:** Stateless JWT authentication (HttpOnly cookie for MVC; Bearer token for REST API)
+- **REST API:** Jackson, SpringDoc OpenAPI / Swagger UI
 - **Frontend:** Thymeleaf, Bootstrap 5
 - **Database:** PostgreSQL (prod) / H2 (dev)
 - **Migrations:** Flyway
@@ -34,6 +35,15 @@ A full-stack e-commerce web application for managing and selling home appliances
 - View all orders across all clients
 - Client and employee list tables show phone and date of birth
 - Profile page — edit profile details, change password, upload avatar
+
+### REST API
+- JWT Bearer token authentication — `POST /api/v1/auth/login` returns a token; pass it as `Authorization: Bearer <token>`
+- Appliances — full CRUD (`GET`/`POST`/`PUT`/`DELETE`); paginated list with all filters
+- Manufacturers — full CRUD; paginated list
+- Orders — list (EMPLOYEE sees all, CLIENT sees own); approve endpoint (EMPLOYEE only)
+- Clients — read-only list and detail
+- Consistent JSON error responses (status, error, message, path) for all 4xx/5xx cases
+- Interactive docs at `/swagger-ui.html` with built-in Bearer auth support
 
 ### General
 - Role-based access control (CLIENT / EMPLOYEE)
@@ -87,10 +97,12 @@ Avatar uploads are stored in the `app_uploads` Docker volume.
 ```
 src/
 ├── main/java/com/vovan4ok/appliance/store/
-│   ├── config/          # Security, MVC, JWT config
+│   ├── config/          # Security, MVC, JWT, OpenAPI config
 │   ├── controller/      # MVC controllers + global exception handler
+│   │   └── api/         # REST API controllers (appliances, manufacturers, orders, clients, auth)
 │   ├── exception/       # Custom exceptions (InsufficientStockException)
 │   ├── model/           # JPA entities and DTOs
+│   │   └── dto/api/     # REST request/response DTOs
 │   ├── repository/      # Spring Data JPA repositories + Criteria API spec
 │   ├── security/        # JWT filter and utilities
 │   ├── service/         # Business logic interfaces and implementations

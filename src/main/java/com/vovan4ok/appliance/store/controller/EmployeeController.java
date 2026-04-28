@@ -2,6 +2,7 @@ package com.vovan4ok.appliance.store.controller;
 
 import com.vovan4ok.appliance.store.model.Employee;
 import com.vovan4ok.appliance.store.model.dto.EmployeeDto;
+import com.vovan4ok.appliance.store.model.dto.EmployeeViewDto;
 import com.vovan4ok.appliance.store.service.EmployeeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,7 @@ public class EmployeeController {
                        @RequestParam(defaultValue = "5") int size) {
         log.debug("GET /employees page={} size={}", page, size);
         Page<Employee> result = employeeService.findAll(PageRequest.of(page, size, Sort.by("name")));
-        model.addAttribute("employees", result.getContent());
+        model.addAttribute("employees", result.getContent().stream().map(EmployeeViewDto::from).toList());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", result.getTotalPages());
         return "employee/employees";
