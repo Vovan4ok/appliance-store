@@ -25,7 +25,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 
@@ -110,9 +115,9 @@ public class OrdersController {
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
 
-        Page<Appliance> result =
-                applianceService.findAll(name, category, powerType, manufacturerId, minPrice, maxPrice, inStockOnly, false,
-                        PageRequest.of(page, size, sort));
+        Page<Appliance> result = applianceService.findAll(
+                name, category, powerType, manufacturerId, minPrice, maxPrice,
+                inStockOnly, false, PageRequest.of(page, size, sort));
 
         model.addAttribute("ordersId", id);
         model.addAttribute("appliances", result.getContent().stream().map(ApplianceDto::from).toList());

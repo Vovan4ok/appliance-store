@@ -14,7 +14,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Slf4j
 @Controller
@@ -51,7 +56,8 @@ public class EmployeeController {
             log.debug("Validation errors saving employee: {}", result.getAllErrors());
             return "employee/newEmployee";
         }
-        Employee employee = new Employee(null, dto.getName(), dto.getEmail(), passwordEncoder.encode(dto.getPassword()), dto.getDepartment());
+        Employee employee = new Employee(null, dto.getName(), dto.getEmail(),
+                passwordEncoder.encode(dto.getPassword()), dto.getDepartment());
         employee.setPhone(dto.getPhone());
         employee.setDateOfBirth(dto.getDateOfBirth());
         employeeService.save(employee);

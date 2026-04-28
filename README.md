@@ -14,6 +14,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - **Migrations:** Flyway
 - **Containerization:** Docker, Docker Compose
 - **Build:** Maven
+- **Code style:** Checkstyle (Google-inspired ruleset — `checkstyle.xml`)
 - **CI:** GitHub Actions
 
 ## Features
@@ -52,6 +53,19 @@ A full-stack e-commerce web application for managing and selling home appliances
 - Pagination and sorting on all list views
 - Internationalization — English and Ukrainian (toggle via `?lang=uk`)
 - AOP-based method logging
+
+## Development
+
+```bash
+# Run all tests
+mvn test
+
+# Check code style
+mvn checkstyle:check
+
+# Run tests + checkstyle together (matches CI)
+mvn verify
+```
 
 ## Getting Started
 

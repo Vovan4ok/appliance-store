@@ -16,7 +16,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 
@@ -42,7 +47,8 @@ public class ApplianceController {
                        @RequestParam(defaultValue = "name") String sortBy,
                        @RequestParam(defaultValue = "asc") String sortDir,
                        @RequestParam(defaultValue = "false") boolean outOfStockOnly) {
-        log.debug("GET /appliances page={} size={} name={} category={} powerType={} manufacturerId={} sortBy={} sortDir={} outOfStockOnly={}",
+        log.debug("GET /appliances page={} size={} name={} category={} powerType={}"
+                + " manufacturerId={} sortBy={} sortDir={} outOfStockOnly={}",
                 page, size, name, category, powerType, manufacturerId, sortBy, sortDir, outOfStockOnly);
 
         Sort sort = sortDir.equalsIgnoreCase("desc")
@@ -90,7 +96,8 @@ public class ApplianceController {
                        Model model) {
         if (result.hasErrors()) {
             log.debug("Validation errors saving appliance: {}", result.getAllErrors());
-            model.addAttribute("manufacturers", manufacturerService.findAll().stream().map(ManufacturerDto::from).toList());
+            model.addAttribute("manufacturers",
+                    manufacturerService.findAll().stream().map(ManufacturerDto::from).toList());
             model.addAttribute("categories", Category.values());
             model.addAttribute("powerTypes", PowerType.values());
             return "appliance/newAppliance";
@@ -137,7 +144,8 @@ public class ApplianceController {
         if (result.hasErrors()) {
             log.debug("Validation errors updating appliance id={}: {}", id, result.getAllErrors());
             model.addAttribute("applianceId", id);
-            model.addAttribute("manufacturers", manufacturerService.findAll().stream().map(ManufacturerDto::from).toList());
+            model.addAttribute("manufacturers",
+                    manufacturerService.findAll().stream().map(ManufacturerDto::from).toList());
             model.addAttribute("categories", Category.values());
             model.addAttribute("powerTypes", PowerType.values());
             return "appliance/editAppliance";

@@ -47,7 +47,8 @@ public class ApplianceServiceImpl implements ApplianceService {
             Pageable pageable
     ) {
         return applianceRepository.findAll(
-                ApplianceSpecification.withFilters(name, category, powerType, manufacturerId, minPrice, maxPrice, inStockOnly, outOfStockOnly),
+                ApplianceSpecification.withFilters(name, category, powerType,
+                        manufacturerId, minPrice, maxPrice, inStockOnly, outOfStockOnly),
                 pageable
         );
     }

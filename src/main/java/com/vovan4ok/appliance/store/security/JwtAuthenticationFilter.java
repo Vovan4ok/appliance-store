@@ -51,7 +51,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             return header.substring(7);
         }
-        if (request.getCookies() == null) return null;
+        if (request.getCookies() == null) {
+            return null;
+        }
         return Arrays.stream(request.getCookies())
                 .filter(c -> "jwt".equals(c.getName()))
                 .map(Cookie::getValue)

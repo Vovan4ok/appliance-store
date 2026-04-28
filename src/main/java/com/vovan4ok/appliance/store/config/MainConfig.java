@@ -64,7 +64,8 @@ public class MainConfig implements WebMvcConfigurer {
                 return null;
             }
             @Override
-            public void saveOutputFlashMap(FlashMap flashMap, HttpServletRequest request, HttpServletResponse response) {
+            public void saveOutputFlashMap(FlashMap flashMap,
+                    HttpServletRequest request, HttpServletResponse response) {
             }
         };
     }

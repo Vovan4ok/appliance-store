@@ -16,7 +16,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -66,8 +70,12 @@ public class ProfileController {
         user.setName(dto.getName());
         user.setPhone(dto.getPhone());
         user.setDateOfBirth(dto.getDateOfBirth());
-        if (user instanceof Client c) c.setCard(dto.getCard());
-        if (user instanceof Employee e) e.setDepartment(dto.getDepartment());
+        if (user instanceof Client c) {
+            c.setCard(dto.getCard());
+        }
+        if (user instanceof Employee e) {
+            e.setDepartment(dto.getDepartment());
+        }
         saveUser(user);
         log.info("Profile updated for {}", auth.getName());
         return "redirect:/profile?updated";
@@ -112,7 +120,9 @@ public class ProfileController {
     @PostMapping("/avatar")
     public String uploadAvatar(@RequestParam("avatar") MultipartFile file,
                                Authentication auth) {
-        if (file.isEmpty()) return "redirect:/profile?avatarError";
+        if (file.isEmpty()) {
+            return "redirect:/profile?avatarError";
+        }
 
         String contentType = file.getContentType();
         if (!List.of("image/jpeg", "image/png").contains(contentType)) {
@@ -135,8 +145,11 @@ public class ProfileController {
             }
             file.transferTo(dir.resolve(filename));
 
-            if (user instanceof Client c) clientService.updateAvatar(c.getId(), filename);
-            else if (user instanceof Employee e) employeeService.updateAvatar(e.getId(), filename);
+            if (user instanceof Client c) {
+                clientService.updateAvatar(c.getId(), filename);
+            } else if (user instanceof Employee e) {
+                employeeService.updateAvatar(e.getId(), filename);
+            }
 
         } catch (IOException ex) {
             log.error("Avatar upload failed for {}: {}", auth.getName(), ex.getMessage());
@@ -155,8 +168,11 @@ public class ProfileController {
     }
 
     private void saveUser(User user) {
-        if (user instanceof Employee e) employeeService.save(e);
-        else if (user instanceof Client c) clientService.save(c);
+        if (user instanceof Employee e) {
+            employeeService.save(e);
+        } else if (user instanceof Client c) {
+            clientService.save(c);
+        }
     }
 
     private ProfileDto buildProfileDto(User user) {
@@ -164,8 +180,12 @@ public class ProfileController {
         dto.setName(user.getName());
         dto.setPhone(user.getPhone());
         dto.setDateOfBirth(user.getDateOfBirth());
-        if (user instanceof Client c) dto.setCard(c.getCard());
-        if (user instanceof Employee e) dto.setDepartment(e.getDepartment());
+        if (user instanceof Client c) {
+            dto.setCard(c.getCard());
+        }
+        if (user instanceof Employee e) {
+            dto.setDepartment(e.getDepartment());
+        }
         return dto;
     }
 }

@@ -25,8 +25,12 @@ public class GlobalModelAttributes {
 
     @ModelAttribute("currentUserAvatarPath")
     public String currentUserAvatarPath(Authentication auth) {
-        if (clientService == null || employeeService == null) return null;
-        if (auth == null || !auth.isAuthenticated()) return null;
+        if (clientService == null || employeeService == null) {
+            return null;
+        }
+        if (auth == null || !auth.isAuthenticated()) {
+            return null;
+        }
         String email = auth.getName();
         return employeeService.findByEmail(email)
                 .map(e -> e.getAvatarPath())
@@ -37,8 +41,12 @@ public class GlobalModelAttributes {
 
     @ModelAttribute("currentUserDisplayName")
     public String currentUserDisplayName(Authentication auth) {
-        if (clientService == null || employeeService == null) return null;
-        if (auth == null || !auth.isAuthenticated()) return null;
+        if (clientService == null || employeeService == null) {
+            return null;
+        }
+        if (auth == null || !auth.isAuthenticated()) {
+            return null;
+        }
         String email = auth.getName();
         return employeeService.findByEmail(email)
                 .map(e -> e.getName())

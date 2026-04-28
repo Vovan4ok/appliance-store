@@ -14,7 +14,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Slf4j
 @Controller
@@ -51,7 +56,8 @@ public class ClientController {
             log.debug("Validation errors saving client: {}", result.getAllErrors());
             return "client/newClient";
         }
-        Client client = new Client(null, dto.getName(), dto.getEmail(), passwordEncoder.encode(dto.getPassword()), dto.getCard());
+        Client client = new Client(null, dto.getName(), dto.getEmail(),
+                passwordEncoder.encode(dto.getPassword()), dto.getCard());
         client.setPhone(dto.getPhone());
         client.setDateOfBirth(dto.getDateOfBirth());
         clientService.save(client);

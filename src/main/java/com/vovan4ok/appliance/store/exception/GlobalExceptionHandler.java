@@ -22,7 +22,9 @@ public class GlobalExceptionHandler {
         log.warn("Data integrity violation at {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
         model.addAttribute("status", 409);
         model.addAttribute("error", "Conflict");
-        model.addAttribute("message", "Cannot complete this operation because the record is still referenced by other data. Remove the related records first.");
+        model.addAttribute("message",
+                "Cannot complete this operation because the record is still referenced by other data."
+                + " Remove the related records first.");
         model.addAttribute("path", request.getRequestURI());
         return "error";
     }

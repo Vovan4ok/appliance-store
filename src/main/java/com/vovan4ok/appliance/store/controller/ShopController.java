@@ -19,7 +19,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 
@@ -112,7 +116,9 @@ public class ShopController {
         log.info("Updating cart row id={} quantity={}", rowId, number);
         boolean exceeded = orderService.findOrderRowById(rowId).map(row -> {
             int stock = row.getAppliance().getStock() != null ? row.getAppliance().getStock() : 0;
-            if (number > stock) return true;
+            if (number > stock) {
+                return true;
+            }
             orderService.updateOrderRowQuantity(rowId, number);
             return false;
         }).orElse(false);
