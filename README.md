@@ -25,10 +25,11 @@ A full-stack e-commerce web application for managing and selling home appliances
 - Shopping cart — add items, update quantities, remove rows; warns if a cart item goes out of stock
 - Submit orders for employee review
 - View order history
+- Manufacturer list (card-grid) with name search and pagination; click any card to open the detail page with full info and a "Browse Appliances" link filtered to that brand
 - Profile page — edit name, phone, date of birth, card number; change password; upload avatar
 
 ### Employee
-- Full CRUD for appliances, manufacturers, clients, and employees
+- Full CRUD for appliances, manufacturers, clients, and employees; manufacturer detail page with Edit + Delete actions and a "Browse Appliances" link
 - Appliance list filters: name, category, power type, manufacturer, price range, sort, and "Out of stock only"
 - Out-of-stock appliance cards shown with a lighter blur overlay — info still readable, edit/delete still clickable
 - Manage stock levels directly on the appliance create/edit form
@@ -40,7 +41,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 ### REST API
 - JWT Bearer token authentication — `POST /api/v1/auth/login` returns a token; pass it as `Authorization: Bearer <token>`
 - Appliances — full CRUD (`GET`/`POST`/`PUT`/`DELETE`); paginated list with all filters
-- Manufacturers — full CRUD; paginated list
+- Manufacturers — full CRUD; paginated list with optional `search` param
 - Orders — list (EMPLOYEE sees all, CLIENT sees own); approve endpoint (EMPLOYEE only)
 - Clients — read-only list and detail
 - Consistent JSON error responses (status, error, message, path) for all 4xx/5xx cases
