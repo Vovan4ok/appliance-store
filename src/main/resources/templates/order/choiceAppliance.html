@@ -228,8 +228,12 @@
                     <div class="flex-grow-1 mb-3">
                         <div class="info-row">
                             <span class="info-label" th:text="#{object.appliance.manufacturer}">Manufacturer</span>
-                            <span class="info-value fw-semibold"
-                                  th:text="${appliance.manufacturerName != null ? appliance.manufacturerName : '—'}"></span>
+                            <a th:if="${appliance.manufacturerId != null}"
+                               th:href="@{/manufacturers(search=${appliance.manufacturerName})}"
+                               class="info-value fw-semibold text-decoration-none"
+                               th:text="${appliance.manufacturerName}"></a>
+                            <span th:unless="${appliance.manufacturerId != null}"
+                                  class="info-value fw-semibold">—</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label" th:text="#{object.appliance.model}">Model</span>

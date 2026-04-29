@@ -55,6 +55,37 @@ class ManufacturerControllerTest {
     }
 
     @Test
+    void list_withSearch_returnsFilteredView() throws Exception {
+        when(manufacturerService.findAll(eq("Samsung"), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(mfr(1L, "Samsung"))));
+
+        mockMvc.perform(get("/manufacturers").param("search", "Samsung"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("manufacture/manufacturers"))
+                .andExpect(model().attribute("filterSearch", "Samsung"));
+    }
+
+    @Test
+    void detail_found_returnsDetailView() throws Exception {
+        when(manufacturerService.findById(1L))
+                .thenReturn(Optional.of(mfr(1L, "Samsung")));
+
+        mockMvc.perform(get("/manufacturers/1"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("manufacture/manufacturerDetail"))
+                .andExpect(model().attributeExists("manufacturer"));
+    }
+
+    @Test
+    void detail_notFound_showsErrorPage() throws Exception {
+        when(manufacturerService.findById(99L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/manufacturers/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error"));
+    }
+
+    @Test
     void addForm_returnsNewManufacturerView() throws Exception {
         mockMvc.perform(get("/manufacturers/add"))
                 .andExpect(status().isOk())
@@ -105,7 +136,7 @@ class ManufacturerControllerTest {
     }
 
     @Test
-    void update_validName_redirectsToList() throws Exception {
+    void update_validName_redirectsToDetail() throws Exception {
         when(manufacturerService.findById(1L))
                 .thenReturn(Optional.of(mfr(1L, "Samsung")));
 
@@ -113,7 +144,7 @@ class ManufacturerControllerTest {
                         .param("name", "Samsung Updated")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/manufacturers"));
+                .andExpect(redirectedUrl("/manufacturers/1"));
     }
 
     @Test

@@ -31,6 +31,10 @@
                     <a class="nav-link" th:href="@{/shop}" th:text="#{nav.shop}">Shop</a>
                 </li>
                 <li class="nav-item" sec:authorize="hasRole('CLIENT')">
+                    <a class="nav-link" th:href="@{/manufacturers}"
+                       th:text="#{manufacturers.menu.name}">Manufacturers</a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('CLIENT')">
                     <a class="nav-link" th:href="@{/shop/cart}" th:text="#{nav.cart}">
                         <i class="bi bi-cart3"></i> Cart
                     </a>

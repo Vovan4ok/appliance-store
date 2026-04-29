@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -57,6 +58,22 @@ class ManufacturerApiControllerTest {
                 .andExpect(jsonPath("$.content[0].id").value(1))
                 .andExpect(jsonPath("$.content[0].name").value("Samsung"))
                 .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    void list_withSearch_returnsFilteredPage() throws Exception {
+        when(manufacturerService.findAll(eq("Samsung"), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(mfr(1L, "Samsung"))));
+
+        mockMvc.perform(get("/api/v1/manufacturers")
+                        .param("search", "Samsung")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("Samsung"))
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        verify(manufacturerService).findAll(eq("Samsung"), any(Pageable.class));
+        verify(manufacturerService, never()).findAll(any(Pageable.class));
     }
 
     @Test

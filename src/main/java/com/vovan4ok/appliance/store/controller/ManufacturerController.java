@@ -41,13 +41,26 @@ public class ManufacturerController {
     @GetMapping
     public String list(Model model,
                        @RequestParam(defaultValue = "0") int page,
-                       @RequestParam(defaultValue = "5") int size) {
-        log.debug("GET /manufacturers page={} size={}", page, size);
-        Page<Manufacturer> result = manufacturerService.findAll(PageRequest.of(page, size, Sort.by("name")));
+                       @RequestParam(defaultValue = "6") int size,
+                       @RequestParam(required = false) String search) {
+        log.debug("GET /manufacturers page={} size={} search={}", page, size, search);
+        Page<Manufacturer> result = (search != null && !search.isBlank())
+                ? manufacturerService.findAll(search, PageRequest.of(page, size, Sort.by("name")))
+                : manufacturerService.findAll(PageRequest.of(page, size, Sort.by("name")));
         model.addAttribute("manufacturers", result.getContent().stream().map(ManufacturerDto::from).toList());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", result.getTotalPages());
+        model.addAttribute("filterSearch", search);
         return "manufacture/manufacturers";
+    }
+
+    @GetMapping("/{id}")
+    public String detail(@PathVariable Long id, Model model) {
+        log.debug("GET /manufacturers/{}", id);
+        Manufacturer m = manufacturerService.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Manufacturer not found: " + id));
+        model.addAttribute("manufacturer", ManufacturerDto.from(m));
+        return "manufacture/manufacturerDetail";
     }
 
     @GetMapping("/add")
@@ -103,7 +116,7 @@ public class ManufacturerController {
         }
         manufacturerService.save(m);
         log.info("Manufacturer updated id={} name={}", id, dto.getName());
-        return "redirect:/manufacturers";
+        return "redirect:/manufacturers/" + id;
     }
 
     @GetMapping("/{id}/delete")

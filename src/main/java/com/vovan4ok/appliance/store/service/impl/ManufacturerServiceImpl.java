@@ -31,6 +31,11 @@ public class ManufacturerServiceImpl implements ManufacturerService {
     }
 
     @Override
+    public Page<Manufacturer> findAll(String search, Pageable pageable) {
+        return manufacturerRepository.findByNameContainingIgnoreCase(search, pageable);
+    }
+
+    @Override
     public Optional<Manufacturer> findById(Long id) {
         return manufacturerRepository.findById(id);
     }

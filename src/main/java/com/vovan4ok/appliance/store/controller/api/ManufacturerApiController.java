@@ -35,6 +35,7 @@ public class ManufacturerApiController {
     @GetMapping
     @Operation(summary = "List manufacturers (paginated)")
     public PageResponse<ManufacturerResponse> list(
+            @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "name") String sortBy,
@@ -43,9 +44,12 @@ public class ManufacturerApiController {
         Sort sort = sortDir.equalsIgnoreCase("desc")
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
+        PageRequest pageable = PageRequest.of(page, size, sort);
 
         return PageResponse.from(
-                manufacturerService.findAll(PageRequest.of(page, size, sort))
+                (search != null && !search.isBlank()
+                        ? manufacturerService.findAll(search, pageable)
+                        : manufacturerService.findAll(pageable))
                         .map(ManufacturerResponse::from));
     }
 

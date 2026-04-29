@@ -72,6 +72,7 @@ public class SecurityConfig {
                         // REST API — all other endpoints require authentication
                         .requestMatchers("/api/v1/**").authenticated()
                         // MVC routes
+                        .requestMatchers(HttpMethod.GET, "/manufacturers", "/manufacturers/*").authenticated()
                         .requestMatchers("/employees/**", "/manufacturers/**",
                                 "/appliances/**", "/clients/**").hasRole("EMPLOYEE")
                         .requestMatchers("/shop/**").hasRole("CLIENT")

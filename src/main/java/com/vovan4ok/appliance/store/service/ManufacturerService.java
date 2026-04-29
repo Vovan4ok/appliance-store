@@ -13,6 +13,8 @@ public interface ManufacturerService {
 
     Page<Manufacturer> findAll(Pageable pageable);
 
+    Page<Manufacturer> findAll(String search, Pageable pageable);
+
     Optional<Manufacturer> findById(Long id);
 
     Manufacturer save(Manufacturer manufacturer);

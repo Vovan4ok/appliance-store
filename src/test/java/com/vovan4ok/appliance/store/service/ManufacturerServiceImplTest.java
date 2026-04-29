@@ -48,7 +48,7 @@ class ManufacturerServiceImplTest {
 
     @Test
     void findAll_pageable_returnsPage() {
-        Pageable pageable = PageRequest.of(0, 5);
+        Pageable pageable = PageRequest.of(0, 6);
         Page<Manufacturer> page = new PageImpl<>(List.of(mfr(1L, "Samsung")));
         when(manufacturerRepository.findAll(pageable)).thenReturn(page);
 
@@ -56,6 +56,19 @@ class ManufacturerServiceImplTest {
 
         assertThat(result.getContent()).hasSize(1);
         verify(manufacturerRepository).findAll(pageable);
+    }
+
+    @Test
+    void findAll_withSearch_returnsFilteredPage() {
+        Pageable pageable = PageRequest.of(0, 6);
+        Page<Manufacturer> page = new PageImpl<>(List.of(mfr(1L, "Samsung")));
+        when(manufacturerRepository.findByNameContainingIgnoreCase("Samsung", pageable))
+                .thenReturn(page);
+
+        Page<Manufacturer> result = manufacturerService.findAll("Samsung", pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        verify(manufacturerRepository).findByNameContainingIgnoreCase("Samsung", pageable);
     }
 
     @Test
