@@ -15,6 +15,13 @@ services:
       timeout: 5s
       retries: 5
 
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    restart: unless-stopped
+
   app:
     build: .
     ports:
@@ -26,11 +33,17 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-apppassword}
       JWT_SECRET: ${JWT_SECRET:-appliance-store-jwt-secret-key-must-be-at-least-32-characters-long!}
       UPLOAD_DIR: /app/uploads
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_SMTP_AUTH: "false"
+      MAIL_SMTP_STARTTLS: "false"
     volumes:
       - app_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
 volumes:
   postgres_data:

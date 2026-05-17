@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+       style="background:#f4f4f5;padding:24px 0;font-family:Arial,Helvetica,sans-serif;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0"
+                   style="background:#ffffff;border-radius:8px;overflow:hidden;">
+                <tr>
+                    <td th:replace="~{email/fragments :: header}"></td>
+                </tr>
+                <tr>
+                    <td style="padding:32px;color:#333333;font-size:15px;line-height:1.6;">
+                        <h2 style="margin-top:0;color:#0d6efd;">
+                            Order #<span th:text="${order.orderId}">1</span> received
+                        </h2>
+                        <p>
+                            Hi <span th:text="${order.clientName}">Customer</span>, we have
+                            received your order. It is now awaiting review by our team, and you
+                            will get another email once it is approved.
+                        </p>
+                        <table width="100%" cellpadding="8" cellspacing="0"
+                               style="border-collapse:collapse;margin:16px 0;font-size:14px;">
+                            <tr style="background:#f4f4f5;text-align:left;">
+                                <th>Appliance</th>
+                                <th>Qty</th>
+                                <th style="text-align:right;">Line total</th>
+                            </tr>
+                            <tr th:each="line : ${order.lines}"
+                                style="border-bottom:1px solid #eeeeee;">
+                                <td th:text="${line.applianceName}">Appliance</td>
+                                <td th:text="${line.quantity}">1</td>
+                                <td style="text-align:right;"
+                                    th:text="${line.lineTotal}">0</td>
+                            </tr>
+                        </table>
+                        <p style="font-size:16px;margin-bottom:0;">
+                            <strong>Order total:
+                                <span th:text="${order.totalAmount}">0</span></strong>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td th:replace="~{email/fragments :: footer}"></td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

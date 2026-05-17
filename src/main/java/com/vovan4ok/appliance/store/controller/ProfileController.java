@@ -1,5 +1,6 @@
 package com.vovan4ok.appliance.store.controller;
 
+import com.vovan4ok.appliance.store.event.PasswordChangedEvent;
 import com.vovan4ok.appliance.store.model.Client;
 import com.vovan4ok.appliance.store.model.Employee;
 import com.vovan4ok.appliance.store.model.User;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -39,6 +41,7 @@ public class ProfileController {
     private final ClientService clientService;
     private final EmployeeService employeeService;
     private final PasswordEncoder passwordEncoder;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
@@ -114,6 +117,7 @@ public class ProfileController {
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         saveUser(user);
         log.info("Password changed for {}", auth.getName());
+        eventPublisher.publishEvent(new PasswordChangedEvent(user.getName(), user.getEmail()));
         return "redirect:/profile?passwordChanged";
     }
 

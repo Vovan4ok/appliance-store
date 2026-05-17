@@ -1,6 +1,9 @@
 package com.vovan4ok.appliance.store.service.impl;
 
 import com.vovan4ok.appliance.store.aspect.Loggable;
+import com.vovan4ok.appliance.store.event.OrderApprovedEvent;
+import com.vovan4ok.appliance.store.event.OrderEmailData;
+import com.vovan4ok.appliance.store.event.OrderSubmittedEvent;
 import com.vovan4ok.appliance.store.exception.InsufficientStockException;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.OrderRow;
@@ -10,6 +13,7 @@ import com.vovan4ok.appliance.store.repository.ApplianceRepository;
 import com.vovan4ok.appliance.store.repository.OrdersRepository;
 import com.vovan4ok.appliance.store.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,6 +31,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrdersRepository ordersRepository;
     private final ApplianceRepository applianceRepository;
     private final ApplianceInOrderRepository applianceInOrderRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Loggable
     @Override
@@ -89,6 +94,7 @@ public class OrderServiceImpl implements OrderService {
 
         order.setApproved(true);
         ordersRepository.save(order);
+        eventPublisher.publishEvent(new OrderApprovedEvent(OrderEmailData.from(order)));
     }
 
     @Loggable
@@ -162,6 +168,7 @@ public class OrderServiceImpl implements OrderService {
         ordersRepository.findById(orderId).ifPresent(order -> {
             order.setApproved(null);
             ordersRepository.save(order);
+            eventPublisher.publishEvent(new OrderSubmittedEvent(OrderEmailData.from(order)));
         });
     }
 

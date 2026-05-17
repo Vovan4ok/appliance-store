@@ -8,6 +8,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 
 - **Backend:** Spring Boot 3.2, Spring MVC, Spring Security, Spring Data JPA
 - **Auth:** Stateless JWT authentication (HttpOnly cookie for MVC; Bearer token for REST API)
+- **Email:** Spring Mail — async HTML notifications rendered from Thymeleaf templates
 - **REST API:** Jackson, SpringDoc OpenAPI / Swagger UI
 - **Frontend:** Thymeleaf, Bootstrap 5
 - **Database:** PostgreSQL (prod) / H2 (dev)
@@ -46,6 +47,11 @@ A full-stack e-commerce web application for managing and selling home appliances
 - Clients — read-only list and detail
 - Consistent JSON error responses (status, error, message, path) for all 4xx/5xx cases
 - Interactive docs at `/swagger-ui.html` with built-in Bearer auth support
+
+### Email Notifications
+- HTML emails on key events: registration welcome, order submitted, order approved, and a password-changed security alert
+- Decoupled via Spring application events; sent asynchronously after the database transaction commits, so a mail failure never blocks or breaks the user's request
+- Rendered from Thymeleaf templates; local development uses a [Mailpit](https://mailpit.axllent.org/) SMTP catcher (web UI at `http://localhost:8025`)
 
 ### General
 - Role-based access control (CLIENT / EMPLOYEE)
@@ -89,6 +95,7 @@ docker compose up --build
 
 App starts at `http://localhost:8080` backed by PostgreSQL with Flyway-managed schema.
 Avatar uploads are stored in the `app_uploads` Docker volume.
+A [Mailpit](https://mailpit.axllent.org/) container catches all outgoing email — open its inbox at `http://localhost:8025`.
 
 ## Configuration Profiles
 
@@ -121,12 +128,14 @@ src/
 │   ├── repository/      # Spring Data JPA repositories + Criteria API spec
 │   ├── security/        # JWT filter and utilities
 │   ├── service/         # Business logic interfaces and implementations
+│   ├── event/           # Application events (registration, orders, password)
+│   ├── listener/        # Email notification listener
 │   ├── aspect/          # AOP logging
 │   └── validation/      # Custom password constraint
 ├── main/resources/
 │   ├── db/migration/    # Flyway SQL migrations (V1–V4)
 │   ├── messages/        # i18n message files (EN, UK)
-│   ├── templates/       # Thymeleaf HTML templates
+│   ├── templates/       # Thymeleaf HTML templates (incl. email/ templates)
 │   └── *.sql            # Dev seed data files
 └── test/                # Unit and controller tests (Mockito, MockMvc)
 ```
@@ -140,3 +149,11 @@ src/
 | `DB_PASSWORD` | Database password |
 | `JWT_SECRET` | Secret key for JWT signing (min 32 characters) |
 | `UPLOAD_DIR` | Filesystem path for avatar uploads (default: `uploads`) |
+| `MAIL_HOST` | SMTP server host |
+| `MAIL_PORT` | SMTP server port (default: `587`) |
+| `MAIL_USERNAME` | SMTP username |
+| `MAIL_PASSWORD` | SMTP password |
+| `MAIL_FROM` | "From" address for outgoing email (default: `no-reply@appliance-store.com`) |
+| `MAIL_ENABLED` | Set `false` to disable email sending (default: `true`) |
+
+> Under Docker Compose these default to the bundled Mailpit container — no configuration needed.

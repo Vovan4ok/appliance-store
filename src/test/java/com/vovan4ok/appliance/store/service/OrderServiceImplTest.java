@@ -1,5 +1,7 @@
 package com.vovan4ok.appliance.store.service;
 
+import com.vovan4ok.appliance.store.event.OrderApprovedEvent;
+import com.vovan4ok.appliance.store.event.OrderSubmittedEvent;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.OrderRow;
 import com.vovan4ok.appliance.store.model.Orders;
@@ -12,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -37,6 +40,8 @@ class OrderServiceImplTest {
     ApplianceRepository applianceRepository;
     @Mock
     ApplianceInOrderRepository applianceInOrderRepository;
+    @Mock
+    ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     OrderServiceImpl orderService;
@@ -114,6 +119,7 @@ class OrderServiceImplTest {
 
         assertThat(order.getApproved()).isTrue();
         verify(ordersRepository).save(order);
+        verify(eventPublisher).publishEvent(any(OrderApprovedEvent.class));
     }
 
     @Test
@@ -301,6 +307,7 @@ class OrderServiceImplTest {
 
         assertThat(order.getApproved()).isNull();
         verify(ordersRepository).save(order);
+        verify(eventPublisher).publishEvent(any(OrderSubmittedEvent.class));
     }
 
     @Test

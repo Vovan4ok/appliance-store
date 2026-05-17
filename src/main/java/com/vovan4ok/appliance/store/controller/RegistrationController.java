@@ -1,5 +1,6 @@
 package com.vovan4ok.appliance.store.controller;
 
+import com.vovan4ok.appliance.store.event.RegistrationCompletedEvent;
 import com.vovan4ok.appliance.store.model.Client;
 import com.vovan4ok.appliance.store.model.dto.ClientDto;
 import com.vovan4ok.appliance.store.service.ClientService;
@@ -7,6 +8,7 @@ import com.vovan4ok.appliance.store.service.EmployeeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -25,6 +27,7 @@ public class RegistrationController {
     private final ClientService clientService;
     private final EmployeeService employeeService;
     private final PasswordEncoder passwordEncoder;
+    private final ApplicationEventPublisher eventPublisher;
 
     @GetMapping
     public String showForm(Model model) {
@@ -54,6 +57,7 @@ public class RegistrationController {
         client.setDateOfBirth(dto.getDateOfBirth());
         clientService.save(client);
         log.info("New client registered: {}", dto.getEmail());
+        eventPublisher.publishEvent(new RegistrationCompletedEvent(client.getName(), client.getEmail()));
 
         return "redirect:/login?registered";
     }
