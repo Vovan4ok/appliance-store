@@ -63,23 +63,27 @@ A full-stack e-commerce web application for managing and selling home appliances
 
 ## Development
 
+No Maven install needed — the project ships with the Maven wrapper (`mvnw` / `mvnw.cmd`).
+
 ```bash
 # Run all tests
-mvn test
+./mvnw test
 
 # Check code style
-mvn checkstyle:check
+./mvnw checkstyle:check
 
 # Run tests + checkstyle together (matches CI)
-mvn verify
+./mvnw verify
 ```
+
+> On Windows PowerShell use `.\mvnw.cmd` instead of `./mvnw`.
 
 ## Getting Started
 
 ### Run locally (dev profile — no Docker needed)
 
 ```bash
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
 App starts at `http://localhost:8080` with an H2 in-memory database seeded with sample data.
@@ -133,7 +137,7 @@ src/
 │   ├── aspect/          # AOP logging
 │   └── validation/      # Custom password constraint
 ├── main/resources/
-│   ├── db/migration/    # Flyway SQL migrations (V1–V4)
+│   ├── db/migration/    # Flyway SQL migrations (V1–V6)
 │   ├── messages/        # i18n message files (EN, UK)
 │   ├── templates/       # Thymeleaf HTML templates (incl. email/ templates)
 │   └── *.sql            # Dev seed data files

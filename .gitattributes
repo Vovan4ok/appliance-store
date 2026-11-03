@@ -1,0 +1,5 @@
+# Shell scripts must keep LF line endings or they break on Linux (CI, Docker)
+mvnw text eol=lf
+*.sh text eol=lf
+# Windows scripts keep CRLF
+*.cmd text eol=crlf
