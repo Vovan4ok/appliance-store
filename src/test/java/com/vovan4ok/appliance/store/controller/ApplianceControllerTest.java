@@ -144,6 +144,7 @@ class ApplianceControllerTest {
         mockMvc.perform(get("/appliances/1/edit").param("lang", "uk"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("id=\"aiSuggestBtn\"")))
+                .andExpect(content().string(containsString("result.fallbackReason === 'INSUFFICIENT_DATA'")))
                 // Thymeleaf's JavaScript inlining escapes "/" as "\/"
                 .andExpect(content().string(containsString(
                         "\\/api\\/v1\\/appliances\\/1\\/ai-description?lang=uk")));

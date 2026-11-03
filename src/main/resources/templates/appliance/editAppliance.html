@@ -148,6 +148,7 @@
             loading: /*[[#{appliance.ai.loading}]]*/ 'Generating...',
             inserted: /*[[#{appliance.ai.inserted}]]*/ 'AI suggestion inserted.',
             fallback: /*[[#{appliance.ai.fallback}]]*/ 'AI is not available right now.',
+            insufficient: /*[[#{appliance.ai.insufficient}]]*/ 'Not enough product data for an AI description.',
             error: /*[[#{appliance.ai.error}]]*/ 'Could not get an AI suggestion.'
         };
         const button = document.getElementById('aiSuggestBtn');
@@ -186,6 +187,8 @@
                     field.value = result.description;
                     undo.classList.remove('d-none');
                     showStatus(text.inserted, 'text-success');
+                } else if (result.fallbackReason === 'INSUFFICIENT_DATA') {
+                    showStatus(text.insufficient, 'text-warning');
                 } else {
                     showStatus(text.fallback, 'text-warning');
                 }
