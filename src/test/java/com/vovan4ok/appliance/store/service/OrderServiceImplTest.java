@@ -155,6 +155,67 @@ class OrderServiceImplTest {
     }
 
     @Test
+    void approve_alreadyApproved_doesNotDecrementStockAgain() {
+        Appliance appliance = new Appliance();
+        appliance.setStock(5);
+        OrderRow row = new OrderRow();
+        row.setAppliance(appliance);
+        row.setNumber(2L);
+        Orders order = new Orders();
+        order.setId(1L);
+        order.setApproved(true);
+        order.setOrderRowSet(new HashSet<>(Set.of(row)));
+        when(ordersRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        orderService.approve(1L);
+
+        assertThat(appliance.getStock()).isEqualTo(5);
+        verify(applianceRepository, never()).save(any());
+        verify(ordersRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void unapprove_approvedOrder_restoresStock() {
+        Appliance appliance = new Appliance();
+        appliance.setStock(3);
+        OrderRow row = new OrderRow();
+        row.setAppliance(appliance);
+        row.setNumber(2L);
+        Orders order = new Orders();
+        order.setId(1L);
+        order.setApproved(true);
+        order.setOrderRowSet(new HashSet<>(Set.of(row)));
+        when(ordersRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        orderService.unapprove(1L);
+
+        assertThat(appliance.getStock()).isEqualTo(5);
+        assertThat(order.getApproved()).isNull();
+        verify(applianceRepository).save(appliance);
+    }
+
+    @Test
+    void unapprove_pendingOrder_doesNotTouchStock() {
+        Appliance appliance = new Appliance();
+        appliance.setStock(3);
+        OrderRow row = new OrderRow();
+        row.setAppliance(appliance);
+        row.setNumber(2L);
+        Orders order = new Orders();
+        order.setId(1L);
+        order.setApproved(null);
+        order.setOrderRowSet(new HashSet<>(Set.of(row)));
+        when(ordersRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        orderService.unapprove(1L);
+
+        assertThat(appliance.getStock()).isEqualTo(3);
+        verify(applianceRepository, never()).save(any());
+        verify(ordersRepository).save(order);
+    }
+
+    @Test
     void addOrderRow_createsAndSavesRow() {
         Orders order = new Orders();
         order.setId(1L);

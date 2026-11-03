@@ -78,6 +78,10 @@ public class OrderServiceImpl implements OrderService {
         Orders order = ordersRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + id));
 
+        if (Boolean.TRUE.equals(order.getApproved())) {
+            return;
+        }
+
         for (OrderRow row : order.getOrderRowSet()) {
             Appliance appliance = row.getAppliance();
             int available = appliance.getStock() != null ? appliance.getStock() : 0;
@@ -102,6 +106,15 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public void unapprove(Long id) {
         ordersRepository.findById(id).ifPresent(order -> {
+            if (Boolean.TRUE.equals(order.getApproved())) {
+                for (OrderRow row : order.getOrderRowSet()) {
+                    Appliance appliance = row.getAppliance();
+                    int current = appliance.getStock() != null ? appliance.getStock() : 0;
+                    appliance.setStock(current + row.getNumber().intValue());
+                    applianceRepository.save(appliance);
+                }
+            }
+
             order.setApproved(null);
             ordersRepository.save(order);
         });
