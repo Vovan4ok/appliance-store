@@ -11,8 +11,8 @@ import com.vovan4ok.appliance.store.service.ManufacturerService;
 import com.vovan4ok.appliance.store.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -38,22 +38,22 @@ class OrdersControllerTest {
     @Autowired
     MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     OrderService orderService;
 
-    @MockBean
+    @MockitoBean
     ClientService clientService;
 
-    @MockBean
+    @MockitoBean
     EmployeeService employeeService;
 
-    @MockBean
+    @MockitoBean
     ApplianceService applianceService;
 
-    @MockBean
+    @MockitoBean
     ManufacturerService manufacturerService;
 
-    @MockBean
+    @MockitoBean
     UserDetailsService userDetailsService;
 
     private Orders buildOrder(Long id) {

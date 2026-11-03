@@ -4,8 +4,8 @@ import com.vovan4ok.appliance.store.model.Manufacturer;
 import com.vovan4ok.appliance.store.service.ManufacturerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -30,10 +30,10 @@ class ManufacturerControllerTest {
     @Autowired
     MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     ManufacturerService manufacturerService;
 
-    @MockBean
+    @MockitoBean
     UserDetailsService userDetailsService;
 
     private static Manufacturer mfr(Long id, String name) {

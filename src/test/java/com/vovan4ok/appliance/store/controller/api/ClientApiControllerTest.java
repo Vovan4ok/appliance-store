@@ -4,8 +4,8 @@ import com.vovan4ok.appliance.store.model.Client;
 import com.vovan4ok.appliance.store.service.ClientService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -28,10 +28,10 @@ class ClientApiControllerTest {
     @Autowired
     MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     ClientService clientService;
 
-    @MockBean
+    @MockitoBean
     UserDetailsService userDetailsService;
 
     private Client sampleClient() {

@@ -2,14 +2,14 @@
 
 [![CI](https://github.com/Vovan4ok/appliance-store/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Vovan4ok/appliance-store/actions/workflows/ci.yml)
 
-A full-stack e-commerce web application for managing and selling home appliances, built with Spring Boot 3.2 and Java 17.
+A full-stack e-commerce web application for managing and selling home appliances, built with Spring Boot 4.1 and Java 17.
 
 ## Tech Stack
 
-- **Backend:** Spring Boot 3.2, Spring MVC, Spring Security, Spring Data JPA
+- **Backend:** Spring Boot 4.1 (Spring Framework 7), Spring MVC, Spring Security 7, Spring Data JPA (Hibernate 7)
 - **Auth:** Stateless JWT authentication (HttpOnly cookie for MVC; Bearer token for REST API)
 - **Email:** Spring Mail — async HTML notifications rendered from Thymeleaf templates
-- **REST API:** Jackson, SpringDoc OpenAPI / Swagger UI
+- **REST API:** Jackson 3, SpringDoc OpenAPI 3 / Swagger UI
 - **Frontend:** Thymeleaf, Bootstrap 5
 - **Database:** PostgreSQL (prod) / H2 (dev)
 - **Migrations:** Flyway

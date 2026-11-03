@@ -1,13 +1,13 @@
 package com.vovan4ok.appliance.store.controller.api;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.vovan4ok.appliance.store.model.Manufacturer;
 import com.vovan4ok.appliance.store.model.dto.api.ManufacturerRequest;
 import com.vovan4ok.appliance.store.service.ManufacturerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -35,10 +35,10 @@ class ManufacturerApiControllerTest {
     @Autowired
     ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     ManufacturerService manufacturerService;
 
-    @MockBean
+    @MockitoBean
     UserDetailsService userDetailsService;
 
     private static Manufacturer mfr(Long id, String name) {

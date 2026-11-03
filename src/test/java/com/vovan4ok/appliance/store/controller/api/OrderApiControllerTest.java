@@ -5,9 +5,9 @@ import com.vovan4ok.appliance.store.model.Orders;
 import com.vovan4ok.appliance.store.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -49,10 +49,10 @@ class OrderApiControllerTest {
     @Autowired
     MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     OrderService orderService;
 
-    @MockBean
+    @MockitoBean
     UserDetailsService userDetailsService;
 
     private Orders orderForClient(String email) {
