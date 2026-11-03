@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -133,6 +134,19 @@ class ApplianceControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("appliance/editAppliance"))
                 .andExpect(model().attributeExists("appliance", "applianceId", "manufacturers", "categories", "powerTypes"));
+    }
+
+    @Test
+    void editForm_rendersAiSuggestButtonWiredToApplianceEndpoint() throws Exception {
+        when(applianceService.findById(1L)).thenReturn(Optional.of(buildAppliance()));
+        when(manufacturerService.findAll()).thenReturn(List.of(mfr(1L, "Samsung")));
+
+        mockMvc.perform(get("/appliances/1/edit").param("lang", "uk"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"aiSuggestBtn\"")))
+                // Thymeleaf's JavaScript inlining escapes "/" as "\/"
+                .andExpect(content().string(containsString(
+                        "\\/api\\/v1\\/appliances\\/1\\/ai-description?lang=uk")));
     }
 
     @Test

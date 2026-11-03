@@ -155,3 +155,8 @@ INSERT INTO appliance (name, category, model, manufacturer_id, power_type, chara
 INSERT INTO appliance (name, category, model, manufacturer_id, power_type, characteristic, description, power, price) VALUES ('Portable Blender', 'SMALL', 'MX-ZM181', 12, 'ACCUMULATOR', '150W, 350ml, USB-C charge', 'Panasonic portable blender for smoothies', 150, 49.99);
 INSERT INTO appliance (name, category, model, manufacturer_id, power_type, characteristic, description, power, price) VALUES ('Smart Speaker', 'SMALL', 'HW-Q990B', 1, 'AC220', '656W, 11.1.4 ch, Dolby Atmos', 'Samsung Q-series soundbar with Rear speakers', 656, 1299.99);
 INSERT INTO appliance (name, category, model, manufacturer_id, power_type, characteristic, description, power, price) VALUES ('Soundbar', 'SMALL', 'HT-A7000', 11, 'AC220', '500W, 7.1.2 ch, Dolby Atmos', 'Sony 7.1.2ch soundbar with built-in subwoofer', 500, 999.99);
+
+-- Stock (mirrors prod migration V3: default 10) plus a few out-of-stock / low-stock items for demoing the UI
+UPDATE appliance SET stock = 10;
+UPDATE appliance SET stock = 0 WHERE name IN ('Claw', 'French Door Refrigerator', 'Soundbar');
+UPDATE appliance SET stock = 2 WHERE name IN ('Drip Coffee Maker', 'Microwave Oven');

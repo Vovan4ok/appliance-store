@@ -31,7 +31,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-appliance_store}
       DB_USERNAME: ${POSTGRES_USER:-appuser}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-apppassword}
-      JWT_SECRET: ${JWT_SECRET:-appliance-store-jwt-secret-key-must-be-at-least-32-characters-long!}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (at least 32 characters)}
       UPLOAD_DIR: /app/uploads
       MAIL_HOST: mailpit
       MAIL_PORT: 1025

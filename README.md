@@ -35,7 +35,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - Appliance list filters: name, category, power type, manufacturer, price range, sort, and "Out of stock only"
 - Out-of-stock appliance cards shown with a lighter blur overlay — info still readable, edit/delete still clickable
 - Manage stock levels directly on the appliance create/edit form
-- Generate an AI marketing description suggestion for any appliance in English or Ukrainian (see [AI Product Descriptions](#ai-product-descriptions))
+- "AI suggest" button on the appliance edit page — fills the description with an AI marketing text in the current UI language (English or Ukrainian), with undo; the employee reviews it and saves (see [AI Product Descriptions](#ai-product-descriptions))
 - Approve / unapprove submitted orders — approval validates and decrements stock; blocked with a clear error if any item is out of stock
 - View all orders across all clients
 - Client and employee list tables show phone and date of birth
@@ -60,6 +60,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - `POST /api/v1/appliances/{id}/ai-description?lang=en|uk` (EMPLOYEE only) generates a marketing description from the appliance's name, manufacturer, model, category, power and characteristics
 - Built with Spring AI (`ChatClient`) + OpenAI; the output language comes from the app's i18n (`?lang=`, unsupported languages fall back to English)
 - Returns a **suggestion** — nothing is saved until an employee reviews it and updates the appliance
+- In the UI: **AI suggest** on the edit page inserts the text into the description field (with **Undo**); if AI is off or fails, a notice is shown and the current text is kept
 - **Off by default**: enable with `AI_CHAT_PROVIDER=openai` and `OPENAI_API_KEY` (environment only — never committed)
 
 Example response:
@@ -75,7 +76,9 @@ Example response:
 ```
 
 **How hallucination is controlled**
-- The prompt allows only the facts passed in; inventing specs, prices, warranties or comparisons is forbidden
+- The prompt allows only the facts passed in; inventing specs, prices, warranties or comparisons is forbidden, and so are unstated claims about durability, size, design, materials or usage
+- Placeholder values (e.g. `-----`) are removed before sending, and units follow the output language (Вт, В, л in Ukrainian)
+- No characteristics, no AI copy: a product without real characteristics is never sent to the model (it could only invent things) — the existing description is kept with `fallbackReason` = `INSUFFICIENT_DATA`
 - Price and stock are deliberately not sent, so the model can't quote stale numbers
 - Enum values are sent as plain words (`SMALL` → "small appliance", `AC220` → "220 V mains"), so internal codes don't leak into the copy
 - Product data is sanitized (control characters and `<>` stripped, each field capped at 300 chars) and wrapped in a `<product>` data block the model is told never to obey — a prompt-injection guard
@@ -85,7 +88,7 @@ Example response:
 - Model pinned to `gpt-5-mini` (override with `SPRING_AI_OPENAI_CHAT_MODEL`) so a Spring AI upgrade can't silently change it
 - Output capped at 500 completion tokens; the result is trimmed to 1000 chars (the DB column size)
 - `reasoning-effort=minimal`: `gpt-5-mini` is a reasoning model whose hidden reasoning tokens count against the cap — with the default effort a 300-token budget was used up before any text was written, so the effort is kept minimal for a short, fact-bound copywriting task
-- 15 s timeout and one retry, then a graceful fallback to the existing description (`"source": "FALLBACK"` with `fallbackReason` = `AI_DISABLED`, `AI_ERROR` or `EMPTY_RESPONSE`) — the endpoint never fails because of the AI provider
+- 15 s timeout and one retry, then a graceful fallback to the existing description (`"source": "FALLBACK"` with `fallbackReason` = `AI_DISABLED`, `INSUFFICIENT_DATA`, `AI_ERROR` or `EMPTY_RESPONSE`) — the endpoint never fails because of the AI provider
 - Employee-only endpoint, so shoppers can't run up the bill
 - Only the chat model is enabled; embedding, image, audio and moderation models are switched off
 - Tests mock `ChatClient`, and the test profile forces `spring.ai.model.chat=none`, so CI never calls the real API
@@ -123,7 +126,7 @@ No Maven install needed — the project ships with the Maven wrapper (`mvnw` / `
 ./mvnw spring-boot:run
 ```
 
-App starts at `http://localhost:8080` with an H2 in-memory database seeded with sample data.
+App starts at `http://localhost:8080` with an H2 in-memory database seeded with sample data (122 appliances, 10 in stock each; a few are seeded out of stock or low on stock to demo the UI).
 H2 console available at `http://localhost:8080/h2-console` (user: `sa`, password: `password`).
 
 To try the AI description generator, set the variables in your shell first (never in a committed file):
@@ -140,9 +143,12 @@ export OPENAI_API_KEY=<your key>
 
 ```bash
 cp .env.example .env
-# fill in your values in .env
+# fill in your values in .env — JWT_SECRET is required, e.g. generate one with:
+openssl rand -base64 48
 docker compose up --build
 ```
+
+> Compose refuses to start without `JWT_SECRET`, and the app itself fails fast if the secret is shorter than 32 bytes.
 
 App starts at `http://localhost:8080` backed by PostgreSQL with Flyway-managed schema.
 Avatar uploads are stored in the `app_uploads` Docker volume.
@@ -198,7 +204,7 @@ src/
 | `DB_URL` | JDBC URL, e.g. `jdbc:postgresql://localhost:5432/appliance_store` |
 | `DB_USERNAME` | Database username |
 | `DB_PASSWORD` | Database password |
-| `JWT_SECRET` | Secret key for JWT signing (min 32 characters) |
+| `JWT_SECRET` | **Required** — secret key for JWT signing (min 32 bytes, no default; the app won't start without it) |
 | `UPLOAD_DIR` | Filesystem path for avatar uploads (default: `uploads`) |
 | `MAIL_HOST` | SMTP server host |
 | `MAIL_PORT` | SMTP server port (default: `587`) |

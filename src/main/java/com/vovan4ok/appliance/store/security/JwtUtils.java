@@ -12,11 +12,18 @@ import java.util.Date;
 
 public class JwtUtils {
 
+    // HMAC-SHA keys must be at least 256 bits
+    private static final int MIN_SECRET_BYTES = 32;
+
     private final String secret;
     @Getter
     private final long expirationMs;
 
     public JwtUtils(String secret, long expirationMs) {
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException("jwt.secret must be at least " + MIN_SECRET_BYTES
+                    + " bytes long - set the JWT_SECRET environment variable");
+        }
         this.secret = secret;
         this.expirationMs = expirationMs;
     }

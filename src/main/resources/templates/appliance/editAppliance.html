@@ -94,15 +94,32 @@
                                 <div class="invalid-feedback" th:if="${#fields.hasErrors('stock')}" th:text="#{appliance.stock.error}">Invalid stock</div>
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <label class="form-label fw-semibold" th:text="#{object.appliance.characteristic}">Characteristic</label>
                                 <input type="text" class="form-control" th:field="*{characteristic}"
                                        th:classappend="${#fields.hasErrors('characteristic')} ? 'is-invalid'">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold" th:text="#{object.appliance.description}">Description</label>
-                                <input type="text" class="form-control" th:field="*{description}"
-                                       th:classappend="${#fields.hasErrors('description')} ? 'is-invalid'">
+                            <div class="col-12">
+                                <div class="d-flex align-items-center mb-2">
+                                    <label for="description" class="form-label fw-semibold mb-0"
+                                           th:text="#{object.appliance.description}">Description</label>
+                                    <button type="button" id="aiSuggestBtn"
+                                            class="btn btn-outline-primary btn-sm ms-auto">
+                                        <span id="aiSpinner" class="spinner-border spinner-border-sm me-1 d-none"
+                                              aria-hidden="true"></span>
+                                        <i id="aiIcon" class="bi bi-stars me-1"></i>
+                                        <span th:text="#{appliance.ai.suggest}">AI suggest</span>
+                                    </button>
+                                </div>
+                                <textarea class="form-control" rows="4" maxlength="1000" th:field="*{description}"
+                                          th:classappend="${#fields.hasErrors('description')} ? 'is-invalid'"></textarea>
+                                <div class="d-flex align-items-start gap-2 mt-1">
+                                    <small id="aiStatus" class="text-muted" role="status"
+                                           th:text="#{appliance.ai.hint}">Generated from the saved product data.</small>
+                                    <button type="button" id="aiUndoBtn"
+                                            class="btn btn-link btn-sm p-0 ms-auto d-none"
+                                            th:text="#{appliance.ai.undo}">Undo</button>
+                                </div>
                             </div>
                         </div>
 
@@ -123,5 +140,72 @@
 
 </main>
 <div th:insert="~{footer::footer}"></div>
+<script th:inline="javascript">
+    (() => {
+        // POST /api/v1/appliances/{id}/ai-description in the page's language; the JWT cookie authenticates it
+        const url = /*[[@{/api/v1/appliances/{id}/ai-description(id=${applianceId},lang=${#locale.language})}]]*/ '';
+        const text = {
+            loading: /*[[#{appliance.ai.loading}]]*/ 'Generating...',
+            inserted: /*[[#{appliance.ai.inserted}]]*/ 'AI suggestion inserted.',
+            fallback: /*[[#{appliance.ai.fallback}]]*/ 'AI is not available right now.',
+            error: /*[[#{appliance.ai.error}]]*/ 'Could not get an AI suggestion.'
+        };
+        const button = document.getElementById('aiSuggestBtn');
+        const spinner = document.getElementById('aiSpinner');
+        const icon = document.getElementById('aiIcon');
+        const field = document.getElementById('description');
+        const status = document.getElementById('aiStatus');
+        const undo = document.getElementById('aiUndoBtn');
+        let previous = null;
+
+        const showStatus = (message, cssClass) => {
+            status.textContent = message;
+            status.className = cssClass;
+        };
+        const setBusy = (busy) => {
+            button.disabled = busy;
+            spinner.classList.toggle('d-none', !busy);
+            icon.classList.toggle('d-none', busy);
+        };
+
+        button.addEventListener('click', async () => {
+            setBusy(true);
+            showStatus(text.loading, 'text-muted');
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {'Accept': 'application/json'}
+                });
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                const result = await response.json();
+                if (result.source === 'AI') {
+                    previous = field.value;
+                    field.value = result.description;
+                    undo.classList.remove('d-none');
+                    showStatus(text.inserted, 'text-success');
+                } else {
+                    showStatus(text.fallback, 'text-warning');
+                }
+            } catch (e) {
+                showStatus(text.error, 'text-danger');
+            } finally {
+                setBusy(false);
+            }
+        });
+
+        undo.addEventListener('click', () => {
+            if (previous !== null) {
+                field.value = previous;
+                previous = null;
+            }
+            undo.classList.add('d-none');
+            status.className = 'text-muted';
+            status.textContent = '';
+        });
+    })();
+</script>
 </body>
 </html>

@@ -106,7 +106,8 @@ public class AiDescriptionServiceImplTest {
 
         ArgumentCaptor<String> system = ArgumentCaptor.forClass(String.class);
         verify(requestSpec).system(system.capture());
-        assertThat(system.getValue()).contains("in Ukrainian").contains("Never invent");
+        assertThat(system.getValue())
+                .contains("in Ukrainian", "Never invent", "durability", "Вт, В, л");
         assertThat(result.language()).isEqualTo("uk");
     }
 
@@ -179,6 +180,38 @@ public class AiDescriptionServiceImplTest {
         assertThat(user.getValue())
                 .contains("category: small appliance", "power type: 220 V mains", "power: 830 W")
                 .doesNotContain("SMALL", "AC220");
+    }
+
+    @Test
+    void generate_placeholderFields_areSentAsEmpty() {
+        Appliance placeholder = appliance();
+        placeholder.setModel("-----");
+        AiDescriptionServiceImpl service = serviceWithAi(placeholder, "English", Locale.ENGLISH);
+        when(callResponse.content()).thenReturn("Crispy toast.");
+
+        service.generate(1L, Locale.ENGLISH);
+
+        ArgumentCaptor<String> user = ArgumentCaptor.forClass(String.class);
+        verify(requestSpec).user(user.capture());
+        assertThat(user.getValue()).contains("model: \n").doesNotContain("---");
+    }
+
+    @Test
+    void generate_noRealCharacteristics_fallsBackWithoutCallingAi() {
+        Appliance junk = appliance();
+        junk.setCharacteristic("-------");
+        when(chatModelProvider.getIfAvailable()).thenReturn(chatModel);
+        when(chatClientBuilderProvider.getObject()).thenReturn(chatClientBuilder);
+        when(chatClientBuilder.build()).thenReturn(chatClient);
+        when(applianceService.findById(1L)).thenReturn(Optional.of(junk));
+        AiDescriptionServiceImpl service = new AiDescriptionServiceImpl(applianceService, messageSource,
+                chatModelProvider, chatClientBuilderProvider);
+
+        AiDescriptionResponse result = service.generate(1L, Locale.ENGLISH);
+
+        assertThat(result.source()).isEqualTo(AiDescriptionResponse.Source.FALLBACK);
+        assertThat(result.fallbackReason()).isEqualTo("INSUFFICIENT_DATA");
+        verify(chatClient, never()).prompt();
     }
 
     @Test
