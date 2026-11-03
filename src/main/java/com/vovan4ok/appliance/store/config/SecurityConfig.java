@@ -63,7 +63,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         // REST API — write operations require EMPLOYEE
                         .requestMatchers(HttpMethod.POST,
-                                "/api/v1/appliances", "/api/v1/manufacturers").hasRole("EMPLOYEE")
+                                "/api/v1/appliances", "/api/v1/manufacturers",
+                                "/api/v1/appliances/*/ai-description").hasRole("EMPLOYEE")
                         .requestMatchers(HttpMethod.PUT,
                                 "/api/v1/appliances/**", "/api/v1/manufacturers/**").hasRole("EMPLOYEE")
                         .requestMatchers(HttpMethod.DELETE,

@@ -37,6 +37,8 @@ services:
       MAIL_PORT: 1025
       MAIL_SMTP_AUTH: "false"
       MAIL_SMTP_STARTTLS: "false"
+      AI_CHAT_PROVIDER: ${AI_CHAT_PROVIDER:-none}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
       - app_uploads:/app/uploads
     depends_on:

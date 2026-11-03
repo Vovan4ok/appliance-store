@@ -3,15 +3,18 @@ package com.vovan4ok.appliance.store.controller.api;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.Category;
 import com.vovan4ok.appliance.store.model.PowerType;
+import com.vovan4ok.appliance.store.model.dto.api.AiDescriptionResponse;
 import com.vovan4ok.appliance.store.model.dto.api.ApplianceRequest;
 import com.vovan4ok.appliance.store.model.dto.api.ApplianceResponse;
 import com.vovan4ok.appliance.store.model.dto.api.PageResponse;
+import com.vovan4ok.appliance.store.service.AiDescriptionService;
 import com.vovan4ok.appliance.store.service.ApplianceService;
 import com.vovan4ok.appliance.store.service.ManufacturerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -38,6 +41,7 @@ public class ApplianceApiController {
 
     private final ApplianceService applianceService;
     private final ManufacturerService manufacturerService;
+    private final AiDescriptionService aiDescriptionService;
 
     @GetMapping
     @Operation(summary = "List appliances (paginated, filterable)")
@@ -96,6 +100,12 @@ public class ApplianceApiController {
         applianceService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Appliance not found: " + id));
         applianceService.delete(id);
+    }
+
+    @PostMapping("/{id}/ai-description")
+    @Operation(summary = "Generate an AI marketing description suggestion (EMPLOYEE only, ?lang=en|uk); not saved")
+    public AiDescriptionResponse aiDescription(@PathVariable Long id) {
+        return aiDescriptionService.generate(id, LocaleContextHolder.getLocale());
     }
 
     private Appliance buildAppliance(Appliance appliance, ApplianceRequest request) {

@@ -9,6 +9,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - **Backend:** Spring Boot 4.1 (Spring Framework 7), Spring MVC, Spring Security 7, Spring Data JPA (Hibernate 7)
 - **Auth:** Stateless JWT authentication (HttpOnly cookie for MVC; Bearer token for REST API)
 - **Email:** Spring Mail — async HTML notifications rendered from Thymeleaf templates
+- **AI:** Spring AI 2.0 (`ChatClient`) + OpenAI — product description generator
 - **REST API:** Jackson 3, SpringDoc OpenAPI 3 / Swagger UI
 - **Frontend:** Thymeleaf, Bootstrap 5
 - **Database:** PostgreSQL (prod) / H2 (dev)
@@ -34,6 +35,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - Appliance list filters: name, category, power type, manufacturer, price range, sort, and "Out of stock only"
 - Out-of-stock appliance cards shown with a lighter blur overlay — info still readable, edit/delete still clickable
 - Manage stock levels directly on the appliance create/edit form
+- Generate an AI marketing description suggestion for any appliance in English or Ukrainian (see [AI Product Descriptions](#ai-product-descriptions))
 - Approve / unapprove submitted orders — approval validates and decrements stock; blocked with a clear error if any item is out of stock
 - View all orders across all clients
 - Client and employee list tables show phone and date of birth
@@ -43,6 +45,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - JWT Bearer token authentication — `POST /api/v1/auth/login` returns a token; pass it as `Authorization: Bearer <token>`
 - Appliances — full CRUD (`GET`/`POST`/`PUT`/`DELETE`); paginated list with all filters
 - Manufacturers — full CRUD; paginated list with optional `search` param
+- AI description — `POST /api/v1/appliances/{id}/ai-description?lang=en|uk` (EMPLOYEE only)
 - Orders — list (EMPLOYEE sees all, CLIENT sees own); approve endpoint (EMPLOYEE only)
 - Clients — read-only list and detail
 - Consistent JSON error responses (status, error, message, path) for all 4xx/5xx cases
@@ -52,6 +55,40 @@ A full-stack e-commerce web application for managing and selling home appliances
 - HTML emails on key events: registration welcome, order submitted, order approved, and a password-changed security alert
 - Decoupled via Spring application events; sent asynchronously after the database transaction commits, so a mail failure never blocks or breaks the user's request
 - Rendered from Thymeleaf templates; local development uses a [Mailpit](https://mailpit.axllent.org/) SMTP catcher (web UI at `http://localhost:8025`)
+
+### AI Product Descriptions
+- `POST /api/v1/appliances/{id}/ai-description?lang=en|uk` (EMPLOYEE only) generates a marketing description from the appliance's name, manufacturer, model, category, power and characteristics
+- Built with Spring AI (`ChatClient`) + OpenAI; the output language comes from the app's i18n (`?lang=`, unsupported languages fall back to English)
+- Returns a **suggestion** — nothing is saved until an employee reviews it and updates the appliance
+- **Off by default**: enable with `AI_CHAT_PROVIDER=openai` and `OPENAI_API_KEY` (environment only — never committed)
+
+Example response:
+
+```json
+{
+  "applianceId": 58,
+  "language": "en",
+  "description": "Start every morning with perfectly golden toast...",
+  "source": "AI",
+  "fallbackReason": null
+}
+```
+
+**How hallucination is controlled**
+- The prompt allows only the facts passed in; inventing specs, prices, warranties or comparisons is forbidden
+- Price and stock are deliberately not sent, so the model can't quote stale numbers
+- Enum values are sent as plain words (`SMALL` → "small appliance", `AC220` → "220 V mains"), so internal codes don't leak into the copy
+- Product data is sanitized (control characters and `<>` stripped, each field capped at 300 chars) and wrapped in a `<product>` data block the model is told never to obey — a prompt-injection guard
+- A human reviews every suggestion before it is saved
+
+**How cost and failures are controlled**
+- Model pinned to `gpt-5-mini` (override with `SPRING_AI_OPENAI_CHAT_MODEL`) so a Spring AI upgrade can't silently change it
+- Output capped at 500 completion tokens; the result is trimmed to 1000 chars (the DB column size)
+- `reasoning-effort=minimal`: `gpt-5-mini` is a reasoning model whose hidden reasoning tokens count against the cap — with the default effort a 300-token budget was used up before any text was written, so the effort is kept minimal for a short, fact-bound copywriting task
+- 15 s timeout and one retry, then a graceful fallback to the existing description (`"source": "FALLBACK"` with `fallbackReason` = `AI_DISABLED`, `AI_ERROR` or `EMPTY_RESPONSE`) — the endpoint never fails because of the AI provider
+- Employee-only endpoint, so shoppers can't run up the bill
+- Only the chat model is enabled; embedding, image, audio and moderation models are switched off
+- Tests mock `ChatClient`, and the test profile forces `spring.ai.model.chat=none`, so CI never calls the real API
 
 ### General
 - Role-based access control (CLIENT / EMPLOYEE)
@@ -88,6 +125,16 @@ No Maven install needed — the project ships with the Maven wrapper (`mvnw` / `
 
 App starts at `http://localhost:8080` with an H2 in-memory database seeded with sample data.
 H2 console available at `http://localhost:8080/h2-console` (user: `sa`, password: `password`).
+
+To try the AI description generator, set the variables in your shell first (never in a committed file):
+
+```bash
+export AI_CHAT_PROVIDER=openai
+export OPENAI_API_KEY=<your key>
+./mvnw spring-boot:run
+```
+
+> PowerShell: `$env:AI_CHAT_PROVIDER="openai"; $env:OPENAI_API_KEY="<your key>"; .\mvnw.cmd spring-boot:run`. Optionally pick a model with `SPRING_AI_OPENAI_CHAT_MODEL`.
 
 ### Run with Docker (prod profile — PostgreSQL)
 
@@ -131,7 +178,7 @@ src/
 │   │   └── dto/api/     # REST request/response DTOs
 │   ├── repository/      # Spring Data JPA repositories + Criteria API spec
 │   ├── security/        # JWT filter and utilities
-│   ├── service/         # Business logic interfaces and implementations
+│   ├── service/         # Business logic interfaces and implementations (incl. AI description service)
 │   ├── event/           # Application events (registration, orders, password)
 │   ├── listener/        # Email notification listener
 │   ├── aspect/          # AOP logging
@@ -159,5 +206,8 @@ src/
 | `MAIL_PASSWORD` | SMTP password |
 | `MAIL_FROM` | "From" address for outgoing email (default: `no-reply@appliance-store.com`) |
 | `MAIL_ENABLED` | Set `false` to disable email sending (default: `true`) |
+| `AI_CHAT_PROVIDER` | `openai` enables the AI description generator (default: `none` — off) |
+| `OPENAI_API_KEY` | OpenAI API key, required when `AI_CHAT_PROVIDER=openai` |
+| `SPRING_AI_OPENAI_CHAT_MODEL` | Optional OpenAI model override (default: `gpt-5-mini`; `reasoning-effort=minimal` assumes a GPT-5-family model) |
 
-> Under Docker Compose these default to the bundled Mailpit container — no configuration needed.
+> Under Docker Compose the mail settings default to the bundled Mailpit container — no configuration needed.

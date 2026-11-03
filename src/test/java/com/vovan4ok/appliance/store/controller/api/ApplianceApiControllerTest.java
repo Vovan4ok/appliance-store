@@ -1,5 +1,6 @@
 package com.vovan4ok.appliance.store.controller.api;
 
+import com.vovan4ok.appliance.store.service.AiDescriptionService;
 import tools.jackson.databind.ObjectMapper;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.Category;
@@ -47,6 +48,9 @@ class ApplianceApiControllerTest {
 
     @MockitoBean
     UserDetailsService userDetailsService;
+
+    @MockitoBean
+    AiDescriptionService aiDescriptionService;
 
     private static Manufacturer mfr(Long id, String name) {
         Manufacturer m = new Manufacturer();
