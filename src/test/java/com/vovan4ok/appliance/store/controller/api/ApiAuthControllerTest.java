@@ -14,6 +14,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -26,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(ApiAuthController.class)
 @Import(SecurityConfig.class)
+@TestPropertySource(properties = "jwt.expiration-ms=3600000")
 class ApiAuthControllerTest {
 
     @Autowired
@@ -57,7 +59,7 @@ class ApiAuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isString())
                 .andExpect(jsonPath("$.type").value("Bearer"))
-                .andExpect(jsonPath("$.expiresIn").value(86400000));
+                .andExpect(jsonPath("$.expiresIn").value(3600000));
     }
 
     @Test

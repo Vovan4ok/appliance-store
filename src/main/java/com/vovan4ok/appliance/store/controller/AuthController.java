@@ -2,9 +2,7 @@ package com.vovan4ok.appliance.store.controller;
 
 import com.vovan4ok.appliance.store.security.JwtUtils;
 import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -41,7 +39,7 @@ public class AuthController {
             Cookie cookie = new Cookie("jwt", token);
             cookie.setHttpOnly(true);
             cookie.setPath("/");
-            cookie.setMaxAge(86400);
+            cookie.setMaxAge((int) (jwtUtils.getExpirationMs() / 1000));
             response.addCookie(cookie);
 
             return "redirect:/";
@@ -51,16 +49,12 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public String logout(HttpServletRequest request, HttpServletResponse response) {
+    public String logout(HttpServletResponse response) {
         Cookie cookie = new Cookie("jwt", "");
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge(0);
         response.addCookie(cookie);
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
         return "redirect:/login?logout";
     }
 }

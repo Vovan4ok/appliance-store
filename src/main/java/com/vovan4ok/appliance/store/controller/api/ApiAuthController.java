@@ -42,7 +42,7 @@ public class ApiAuthController {
                     .orElse("ROLE_CLIENT");
 
             String token = jwtUtils.generateToken(request.getEmail(), role);
-            return ResponseEntity.ok(new TokenResponse(token, 86400000L));
+            return ResponseEntity.ok(new TokenResponse(token, jwtUtils.getExpirationMs()));
         } catch (AuthenticationException e) {
             return ResponseEntity.status(401).body(
                     new ErrorResponse(401, "Unauthorized", "Invalid email or password", "/api/v1/auth/login"));
