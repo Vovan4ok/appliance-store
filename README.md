@@ -7,14 +7,17 @@ A full-stack e-commerce web application for managing and selling home appliances
 ## Tech Stack
 
 - **Backend:** Spring Boot 4.1 (Spring Framework 7), Spring MVC, Spring Security 7, Spring Data JPA (Hibernate 7)
-- **Auth:** Stateless JWT authentication (HttpOnly cookie for MVC; Bearer token for REST API)
+- **Auth:** Stateless JWT authentication (HttpOnly cookie for MVC; Bearer token for REST API), revocable on logout
+- **Redis:** JWT logout deny-list, AI description cache (Spring Cache), per-user AI rate limit — in-memory fallbacks in dev/test
 - **Email:** Spring Mail — async HTML notifications rendered from Thymeleaf templates
 - **AI:** Spring AI 2.0 (`ChatClient`) + OpenAI — product description generator
 - **REST API:** Jackson 3, SpringDoc OpenAPI 3 / Swagger UI
 - **Frontend:** Thymeleaf, Bootstrap 5
 - **Database:** PostgreSQL (prod) / H2 (dev)
 - **Migrations:** Flyway
-- **Containerization:** Docker, Docker Compose
+- **Containerization:** Docker, Docker Compose (app, PostgreSQL, Redis, Mailpit)
+- **Monitoring:** Spring Boot Actuator health check (`/actuator/health`)
+- **Testing:** JUnit 5, Mockito, MockMvc, Testcontainers (real Redis in Docker)
 - **Build:** Maven
 - **Code style:** Checkstyle (Google-inspired ruleset — `checkstyle.xml`)
 - **CI:** GitHub Actions
@@ -42,7 +45,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - Profile page — edit profile details, change password, upload avatar
 
 ### REST API
-- JWT Bearer token authentication — `POST /api/v1/auth/login` returns a token; pass it as `Authorization: Bearer <token>`
+- JWT Bearer token authentication — `POST /api/v1/auth/login` returns a token; pass it as `Authorization: Bearer <token>`; `POST /api/v1/auth/logout` revokes it immediately
 - Appliances — full CRUD (`GET`/`POST`/`PUT`/`DELETE`); paginated list with all filters
 - Manufacturers — full CRUD; paginated list with optional `search` param
 - AI description — `POST /api/v1/appliances/{id}/ai-description?lang=en|uk` (EMPLOYEE only)
@@ -90,11 +93,25 @@ Example response:
 - `reasoning-effort=minimal`: `gpt-5-mini` is a reasoning model whose hidden reasoning tokens count against the cap — with the default effort a 300-token budget was used up before any text was written, so the effort is kept minimal for a short, fact-bound copywriting task
 - 15 s timeout and one retry, then a graceful fallback to the existing description (`"source": "FALLBACK"` with `fallbackReason` = `AI_DISABLED`, `INSUFFICIENT_DATA`, `AI_ERROR` or `EMPTY_RESPONSE`) — the endpoint never fails because of the AI provider
 - Employee-only endpoint, so shoppers can't run up the bill
+- **Cached in Redis for 7 days** — repeat requests are served in ~30 ms instead of ~2–4 s and cost nothing; the key includes a hash of the product data and the prompt, so editing either never serves a stale text; fallbacks are never cached
+- **Rate-limited** to 10 AI requests per employee per minute (`app.ai.rate-limit.per-minute`) — the 11th gets `429 Too Many Requests` with a `Retry-After` header, and the UI shows a "please wait" notice
 - Only the chat model is enabled; embedding, image, audio and moderation models are switched off
 - Tests mock `ChatClient`, and the test profile forces `spring.ai.model.chat=none`, so CI never calls the real API
 
+### Redis
+Redis backs three features, each behind an interface with an in-memory implementation for dev/test (`app.redis.enabled`, on in the `prod` profile) — so local development still needs no Docker:
+
+| Feature | How it works in Redis |
+|---------|-----------------------|
+| **Logout that really logs out** | Every JWT has a unique id (`jti`). Logout (web or `POST /api/v1/auth/logout`) stores it in a deny-list (`jwt:denylist:<jti>`) with a TTL equal to the token's remaining lifetime, and the JWT filter rejects listed tokens — a copied token stops working immediately, and Redis cleans the entry up by itself |
+| **AI description cache** | Spring Cache with `RedisCacheManager`, 7-day TTL (`aiDescriptions::<id>:<lang>:<hash>`), written asynchronously so caching never slows a response |
+| **AI rate limit** | Fixed one-minute window per employee: atomic `INCR` on `ai:rate:<user>:<minute>` with a short TTL — shared by all app instances |
+
+**When Redis is down the app degrades instead of failing:** the cache counts as a miss, the rate limit and the deny-list are skipped (fail-open, so an outage doesn't log everyone out), each with a warning in the log, and `/actuator/health` reports `redis: DOWN` (HTTP 503). The Redis client rejects commands while disconnected instead of queueing them, so requests don't wait for timeouts during an outage, and everything recovers automatically. Redis runs with an append-only file, so revoked tokens survive a Redis restart.
+
 ### General
 - Role-based access control (CLIENT / EMPLOYEE)
+- Health check at `/actuator/health` (database, Redis in prod, disk) — the only actuator endpoint exposed
 - Custom password validation (min 8 chars, uppercase, lowercase, special character)
 - Phone number validation — 7–15 digits, optional `+` prefix, spaces/dashes/parentheses allowed
 - Pagination and sorting on all list views
@@ -117,6 +134,8 @@ No Maven install needed — the project ships with the Maven wrapper (`mvnw` / `
 ```
 
 > On Windows PowerShell use `.\mvnw.cmd` instead of `./mvnw`.
+
+The Redis integration tests start a real Redis with [Testcontainers](https://testcontainers.com/), so they need Docker; without Docker they are skipped and everything else still runs.
 
 ## Getting Started
 
@@ -150,8 +169,9 @@ docker compose up --build
 
 > Compose refuses to start without `JWT_SECRET`, and the app itself fails fast if the secret is shorter than 32 bytes.
 
-App starts at `http://localhost:8080` backed by PostgreSQL with Flyway-managed schema.
-Avatar uploads are stored in the `app_uploads` Docker volume.
+App starts at `http://localhost:8080` backed by PostgreSQL with Flyway-managed schema and Redis.
+Avatar uploads are stored in the `app_uploads` Docker volume; Redis data (append-only file) in `redis_data`.
+Health check: `http://localhost:8080/actuator/health`.
 A [Mailpit](https://mailpit.axllent.org/) container catches all outgoing email — open its inbox at `http://localhost:8025`.
 
 ## Configuration Profiles
@@ -160,7 +180,9 @@ A [Mailpit](https://mailpit.axllent.org/) container catches all outgoing email �
 |---------|----------|--------|-------|
 | `dev` (default) | H2 in-memory | disabled | Local development |
 | `test` | H2 in-memory | disabled | Automated tests |
-| `prod` | PostgreSQL | enabled | Docker / production |
+| `prod` | PostgreSQL + Redis | enabled | Docker / production |
+
+`dev` and `test` use in-memory replacements for the Redis features.
 
 ## Sample Credentials
 
@@ -183,7 +205,7 @@ src/
 │   ├── model/           # JPA entities and DTOs
 │   │   └── dto/api/     # REST request/response DTOs
 │   ├── repository/      # Spring Data JPA repositories + Criteria API spec
-│   ├── security/        # JWT filter and utilities
+│   ├── security/        # JWT filter and utilities, token deny-list (Redis / in-memory)
 │   ├── service/         # Business logic interfaces and implementations (incl. AI description service)
 │   ├── event/           # Application events (registration, orders, password)
 │   ├── listener/        # Email notification listener
@@ -215,5 +237,7 @@ src/
 | `AI_CHAT_PROVIDER` | `openai` enables the AI description generator (default: `none` — off) |
 | `OPENAI_API_KEY` | OpenAI API key, required when `AI_CHAT_PROVIDER=openai` |
 | `SPRING_AI_OPENAI_CHAT_MODEL` | Optional OpenAI model override (default: `gpt-5-mini`; `reasoning-effort=minimal` assumes a GPT-5-family model) |
+| `REDIS_HOST` | Redis host (default: `localhost`; Docker Compose sets `redis`) |
+| `REDIS_PORT` | Redis port (default: `6379`) |
 
 > Under Docker Compose the mail settings default to the bundled Mailpit container — no configuration needed.

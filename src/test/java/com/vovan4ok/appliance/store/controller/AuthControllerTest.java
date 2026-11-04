@@ -1,6 +1,9 @@
 package com.vovan4ok.appliance.store.controller;
 
 import com.vovan4ok.appliance.store.config.SecurityConfig;
+import com.vovan4ok.appliance.store.security.JwtUtils;
+import com.vovan4ok.appliance.store.security.TokenDenylist;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -16,9 +19,15 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -34,6 +43,12 @@ public class AuthControllerTest {
 
     @MockitoBean
     UserDetailsService userDetailsService;
+
+    @Autowired
+    JwtUtils jwtUtils;
+
+    @MockitoBean
+    TokenDenylist tokenDenylist;
 
     @Test
     void login_validCredentials_setsJwtCookieWithConfiguredMaxAge() throws Exception {
@@ -72,5 +87,43 @@ public class AuthControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login?logout"))
                 .andExpect(cookie().maxAge("jwt", 0));
+    }
+
+    @Test
+    void logout_withValidCookie_revokesTokenForItsRemainingLifetime() throws Exception {
+        String token = jwtUtils.generateToken("user@test.com", "ROLE_CLIENT");
+
+        mockMvc.perform(post("/auth/logout").with(csrf()).cookie(new Cookie("jwt", token)))
+                .andExpect(redirectedUrl("/login?logout"))
+                .andExpect(cookie().maxAge("jwt", 0));
+
+        verify(tokenDenylist).revoke(eq(jwtUtils.extractId(token)),
+                argThat(ttl -> ttl.toSeconds() > 3500 && ttl.toSeconds() <= 3600));
+    }
+
+    @Test
+    void logout_withoutCookie_revokesNothing() throws Exception {
+        mockMvc.perform(post("/auth/logout").with(csrf()))
+                .andExpect(redirectedUrl("/login?logout"));
+
+        verify(tokenDenylist, never()).revoke(any(), any());
+    }
+
+    @Test
+    void revokedToken_isTreatedAsLoggedOut() throws Exception {
+        String token = jwtUtils.generateToken("user@test.com", "ROLE_CLIENT");
+        when(tokenDenylist.isRevoked(jwtUtils.extractId(token))).thenReturn(true);
+
+        mockMvc.perform(get("/orders").cookie(new Cookie("jwt", token)))
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    void validToken_isAccepted() throws Exception {
+        String token = jwtUtils.generateToken("user@test.com", "ROLE_CLIENT");
+
+        // Authenticated, so security lets it through (no controller here, hence not a login redirect)
+        mockMvc.perform(get("/orders").cookie(new Cookie("jwt", token)))
+                .andExpect(result -> assertThat(result.getResponse().getRedirectedUrl()).isNull());
     }
 }

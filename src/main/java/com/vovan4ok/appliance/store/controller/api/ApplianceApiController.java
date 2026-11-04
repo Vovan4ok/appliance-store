@@ -8,6 +8,7 @@ import com.vovan4ok.appliance.store.model.dto.api.ApplianceRequest;
 import com.vovan4ok.appliance.store.model.dto.api.ApplianceResponse;
 import com.vovan4ok.appliance.store.model.dto.api.PageResponse;
 import com.vovan4ok.appliance.store.service.AiDescriptionService;
+import com.vovan4ok.appliance.store.service.AiRateLimiter;
 import com.vovan4ok.appliance.store.service.ApplianceService;
 import com.vovan4ok.appliance.store.service.ManufacturerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/v1/appliances")
@@ -42,6 +44,7 @@ public class ApplianceApiController {
     private final ApplianceService applianceService;
     private final ManufacturerService manufacturerService;
     private final AiDescriptionService aiDescriptionService;
+    private final AiRateLimiter aiRateLimiter;
 
     @GetMapping
     @Operation(summary = "List appliances (paginated, filterable)")
@@ -104,7 +107,8 @@ public class ApplianceApiController {
 
     @PostMapping("/{id}/ai-description")
     @Operation(summary = "Generate an AI marketing description suggestion (EMPLOYEE only, ?lang=en|uk); not saved")
-    public AiDescriptionResponse aiDescription(@PathVariable Long id) {
+    public AiDescriptionResponse aiDescription(@PathVariable Long id, Principal principal) {
+        aiRateLimiter.acquire(principal.getName());
         return aiDescriptionService.generate(id, LocaleContextHolder.getLocale());
     }
 

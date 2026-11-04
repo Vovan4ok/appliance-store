@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -52,6 +53,14 @@ public class RestExceptionHandler {
                                                                  HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse(409, "Conflict", ex.getMessage(), request.getRequestURI()));
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimit(RateLimitExceededException ex,
+                                                         HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfterSeconds()))
+                .body(new ErrorResponse(429, "Too Many Requests", ex.getMessage(), request.getRequestURI()));
     }
 
     @ExceptionHandler(Exception.class)

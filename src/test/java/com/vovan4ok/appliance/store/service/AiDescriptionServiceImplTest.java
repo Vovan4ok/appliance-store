@@ -1,5 +1,6 @@
 package com.vovan4ok.appliance.store.service;
 
+import com.vovan4ok.appliance.store.config.CacheConfig;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.Category;
 import com.vovan4ok.appliance.store.model.Manufacturer;
@@ -15,6 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.MessageSource;
 
 import java.util.Locale;
@@ -25,7 +28,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -54,6 +59,9 @@ public class AiDescriptionServiceImplTest {
     @Mock
     ChatClient.CallResponseSpec callResponse;
 
+    // Real in-memory cache (what dev/test use); RedisAiDescriptionCacheTest covers the Redis-backed one
+    CacheManager cacheManager = new ConcurrentMapCacheManager(CacheConfig.AI_DESCRIPTIONS);
+
     private static Appliance appliance() {
         Manufacturer m = new Manufacturer();
         m.setName("Philips");
@@ -80,7 +88,7 @@ public class AiDescriptionServiceImplTest {
         when(requestSpec.system(anyString())).thenReturn(requestSpec);
         when(requestSpec.user(anyString())).thenReturn(requestSpec);
         when(requestSpec.call()).thenReturn(callResponse);
-        return new AiDescriptionServiceImpl(applianceService, messageSource, chatModelProvider,
+        return new AiDescriptionServiceImpl(applianceService, messageSource, cacheManager, chatModelProvider,
                 chatClientBuilderProvider);
     }
 
@@ -205,7 +213,7 @@ public class AiDescriptionServiceImplTest {
         when(chatClientBuilder.build()).thenReturn(chatClient);
         when(applianceService.findById(1L)).thenReturn(Optional.of(junk));
         AiDescriptionServiceImpl service = new AiDescriptionServiceImpl(applianceService, messageSource,
-                chatModelProvider, chatClientBuilderProvider);
+                cacheManager, chatModelProvider, chatClientBuilderProvider);
 
         AiDescriptionResponse result = service.generate(1L, Locale.ENGLISH);
 
@@ -219,7 +227,7 @@ public class AiDescriptionServiceImplTest {
         when(chatModelProvider.getIfAvailable()).thenReturn(null);
         when(applianceService.findById(1L)).thenReturn(Optional.of(appliance()));
         AiDescriptionServiceImpl service = new AiDescriptionServiceImpl(applianceService, messageSource,
-                chatModelProvider, chatClientBuilderProvider);
+                cacheManager, chatModelProvider, chatClientBuilderProvider);
 
         AiDescriptionResponse result = service.generate(1L, Locale.ENGLISH);
 
@@ -236,11 +244,77 @@ public class AiDescriptionServiceImplTest {
         when(chatModelProvider.getIfAvailable()).thenReturn(null);
         when(applianceService.findById(99L)).thenReturn(Optional.empty());
         AiDescriptionServiceImpl service = new AiDescriptionServiceImpl(applianceService, messageSource,
-                chatModelProvider, chatClientBuilderProvider);
+                cacheManager, chatModelProvider, chatClientBuilderProvider);
 
         assertThatThrownBy(() -> service.generate(99L, Locale.ENGLISH))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Appliance not found");
         verify(chatClient, never()).prompt();
+    }
+
+    @Test
+    void generate_sameProductTwice_secondCallIsServedFromCache() {
+        AiDescriptionServiceImpl service = serviceWithAi(appliance(), "English", Locale.ENGLISH);
+        when(callResponse.content()).thenReturn("Crispy toast.");
+
+        AiDescriptionResponse first = service.generate(1L, Locale.ENGLISH);
+        AiDescriptionResponse second = service.generate(1L, Locale.ENGLISH);
+
+        assertThat(second.source()).isEqualTo(AiDescriptionResponse.Source.AI);
+        assertThat(second.description()).isEqualTo(first.description());
+        verify(chatClient, times(1)).prompt();
+    }
+
+    @Test
+    void generate_productDataChanged_cacheMissCallsModelAgain() {
+        Appliance appliance = appliance();
+        AiDescriptionServiceImpl service = serviceWithAi(appliance, "English", Locale.ENGLISH);
+        when(callResponse.content()).thenReturn("Old text.", "New text.");
+
+        service.generate(1L, Locale.ENGLISH);
+        appliance.setCharacteristic("4 slots, 9 settings");
+        AiDescriptionResponse afterEdit = service.generate(1L, Locale.ENGLISH);
+
+        assertThat(afterEdit.description()).isEqualTo("New text.");
+        verify(chatClient, times(2)).prompt();
+    }
+
+    @Test
+    void generate_otherLanguage_isCachedSeparately() {
+        AiDescriptionServiceImpl service = serviceWithAi(appliance(), "English", Locale.ENGLISH);
+        when(messageSource.getMessage(eq("ai.prompt.language"), any(), eq(UK))).thenReturn("Ukrainian");
+        when(callResponse.content()).thenReturn("Crispy toast.", "Хрусткі тости.");
+
+        service.generate(1L, Locale.ENGLISH);
+        AiDescriptionResponse ukrainian = service.generate(1L, UK);
+
+        assertThat(ukrainian.description()).isEqualTo("Хрусткі тости.");
+        verify(chatClient, times(2)).prompt();
+    }
+
+    @Test
+    void generate_fallbackIsNeverCached() {
+        AiDescriptionServiceImpl service = serviceWithAi(appliance(), "English", Locale.ENGLISH);
+        when(callResponse.content()).thenReturn("   ", "Crispy toast.");
+
+        AiDescriptionResponse first = service.generate(1L, Locale.ENGLISH);
+        AiDescriptionResponse second = service.generate(1L, Locale.ENGLISH);
+
+        assertThat(first.fallbackReason()).isEqualTo("EMPTY_RESPONSE");
+        assertThat(second.source()).isEqualTo(AiDescriptionResponse.Source.AI);
+        verify(chatClient, times(2)).prompt();
+    }
+
+    @Test
+    void generate_cacheUnavailable_stillReturnsAiDescription() {
+        cacheManager = mock(CacheManager.class);
+        when(cacheManager.getCache(CacheConfig.AI_DESCRIPTIONS)).thenThrow(new RuntimeException("Redis down"));
+        AiDescriptionServiceImpl service = serviceWithAi(appliance(), "English", Locale.ENGLISH);
+        when(callResponse.content()).thenReturn("Crispy toast.");
+
+        AiDescriptionResponse result = service.generate(1L, Locale.ENGLISH);
+
+        assertThat(result.source()).isEqualTo(AiDescriptionResponse.Source.AI);
+        assertThat(result.description()).isEqualTo("Crispy toast.");
     }
 }

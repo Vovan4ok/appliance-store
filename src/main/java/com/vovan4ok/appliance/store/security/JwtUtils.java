@@ -8,7 +8,10 @@ import lombok.Getter;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
 
 public class JwtUtils {
 
@@ -30,6 +33,8 @@ public class JwtUtils {
 
     public String generateToken(String email, String role) {
         return Jwts.builder()
+                // Unique token id (jti) so a single token can be revoked on logout
+                .id(UUID.randomUUID().toString())
                 .subject(email)
                 .claim("role", role)
                 .issuedAt(new Date())
@@ -44,6 +49,15 @@ public class JwtUtils {
 
     public String extractRole(String token) {
         return parseClaims(token).get("role", String.class);
+    }
+
+    public String extractId(String token) {
+        return parseClaims(token).getId();
+    }
+
+    public Duration remainingLifetime(String token) {
+        Duration remaining = Duration.between(Instant.now(), parseClaims(token).getExpiration().toInstant());
+        return remaining.isNegative() ? Duration.ZERO : remaining;
     }
 
     public boolean isValid(String token) {

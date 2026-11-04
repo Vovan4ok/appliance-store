@@ -2,6 +2,8 @@ package com.vovan4ok.appliance.store.security;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -51,6 +53,25 @@ class JwtUtilsTest {
                 .generateToken("user@test.com", "ROLE_EMPLOYEE");
 
         assertThat(new JwtUtils(SECRET, 60_000).isValid(foreign)).isFalse();
+    }
+
+    @Test
+    void generateToken_givesEveryTokenAUniqueId() {
+        JwtUtils jwtUtils = new JwtUtils(SECRET, 60_000);
+
+        String first = jwtUtils.extractId(jwtUtils.generateToken("user@test.com", "ROLE_CLIENT"));
+        String second = jwtUtils.extractId(jwtUtils.generateToken("user@test.com", "ROLE_CLIENT"));
+
+        assertThat(first).isNotBlank().isNotEqualTo(second);
+    }
+
+    @Test
+    void remainingLifetime_isTimeUntilExpiry() {
+        JwtUtils jwtUtils = new JwtUtils(SECRET, 60_000);
+
+        Duration remaining = jwtUtils.remainingLifetime(jwtUtils.generateToken("user@test.com", "ROLE_CLIENT"));
+
+        assertThat(remaining).isBetween(Duration.ofSeconds(58), Duration.ofSeconds(60));
     }
 
     @Test

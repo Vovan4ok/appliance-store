@@ -2,6 +2,7 @@ package com.vovan4ok.appliance.store.config;
 
 import com.vovan4ok.appliance.store.security.JwtAuthenticationFilter;
 import com.vovan4ok.appliance.store.security.JwtUtils;
+import com.vovan4ok.appliance.store.security.TokenDenylist;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -44,8 +45,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtUtils());
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, TokenDenylist tokenDenylist) throws Exception {
+        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtUtils(), tokenDenylist);
 
         http
                 .securityContext(ctx -> ctx
@@ -57,6 +58,8 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/", "/login", "/register", "/auth/login", "/auth/logout",
                                 "/favicon.ico", "/uploads/**").permitAll()
+                        // Health check (Docker / load balancers); no other actuator endpoint is exposed
+                        .requestMatchers("/actuator/health").permitAll()
                         // Swagger UI + OpenAPI docs
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         // REST API — auth endpoint is public

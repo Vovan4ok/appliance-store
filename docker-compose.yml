@@ -15,6 +15,20 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7.4-alpine
+    # Append-only file: revoked tokens survive a Redis restart
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   mailpit:
     image: axllent/mailpit:latest
     ports:
@@ -39,14 +53,18 @@ services:
       MAIL_SMTP_STARTTLS: "false"
       AI_CHAT_PROVIDER: ${AI_CHAT_PROVIDER:-none}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      REDIS_HOST: redis
     volumes:
       - app_uploads:/app/uploads
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       mailpit:
         condition: service_started
 
 volumes:
   postgres_data:
+  redis_data:
   app_uploads:

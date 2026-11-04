@@ -149,6 +149,7 @@
             inserted: /*[[#{appliance.ai.inserted}]]*/ 'AI suggestion inserted.',
             fallback: /*[[#{appliance.ai.fallback}]]*/ 'AI is not available right now.',
             insufficient: /*[[#{appliance.ai.insufficient}]]*/ 'Not enough product data for an AI description.',
+            rateLimited: /*[[#{appliance.ai.rateLimited}]]*/ 'Too many AI requests - try again in a minute.',
             error: /*[[#{appliance.ai.error}]]*/ 'Could not get an AI suggestion.'
         };
         const button = document.getElementById('aiSuggestBtn');
@@ -178,6 +179,10 @@
                     credentials: 'same-origin',
                     headers: {'Accept': 'application/json'}
                 });
+                if (response.status === 429) {
+                    showStatus(text.rateLimited, 'text-warning');
+                    return;
+                }
                 if (!response.ok) {
                     throw new Error('HTTP ' + response.status);
                 }

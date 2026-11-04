@@ -1,6 +1,7 @@
 package com.vovan4ok.appliance.store.controller;
 
 import com.vovan4ok.appliance.store.security.JwtUtils;
+import com.vovan4ok.appliance.store.security.TokenDenylist;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,6 +22,7 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
+    private final TokenDenylist tokenDenylist;
 
     @PostMapping("/login")
     public String login(@RequestParam String username,
@@ -49,7 +52,12 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public String logout(HttpServletResponse response) {
+    public String logout(@CookieValue(name = "jwt", required = false) String token,
+                         HttpServletResponse response) {
+        // Deleting the cookie is not enough: a copied token would stay valid until it expires
+        if (token != null && jwtUtils.isValid(token)) {
+            tokenDenylist.revoke(jwtUtils.extractId(token), jwtUtils.remainingLifetime(token));
+        }
         Cookie cookie = new Cookie("jwt", "");
         cookie.setHttpOnly(true);
         cookie.setPath("/");
