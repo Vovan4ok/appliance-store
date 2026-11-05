@@ -56,6 +56,10 @@ services:
       AI_CHAT_PROVIDER: ${AI_CHAT_PROVIDER:-none}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       REDIS_HOST: redis
+      TEMPORAL_ADDRESS: temporal:7233
+      # How long a submitted order waits before employees get a reminder / before it goes back to the cart
+      ORDER_APPROVAL_REMINDER_AFTER: ${ORDER_APPROVAL_REMINDER_AFTER:-24h}
+      ORDER_APPROVAL_EXPIRE_AFTER: ${ORDER_APPROVAL_EXPIRE_AFTER:-72h}
     volumes:
       - app_uploads:/app/uploads
     depends_on:
@@ -63,8 +67,28 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      temporal:
+        condition: service_healthy
       mailpit:
         condition: service_started
+
+  # ── Temporal: runs the order-approval workflows (durable reminder and expiry timers) ──
+  # The single-binary dev server (SQLite file in a volume) with its Web UI; production would run a Temporal
+  # cluster or Temporal Cloud instead, the app only needs TEMPORAL_ADDRESS
+  temporal:
+    image: temporalio/temporal:1.9.1
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/home/temporal/temporal.db"]
+    ports:
+      - "127.0.0.1:7233:7233"   # gRPC API (the app connects here inside the Docker network)
+      - "127.0.0.1:8233:8233"   # Web UI: every order's workflow, its timers and history
+    volumes:
+      # The image runs as user "temporal": its home directory gives the new volume the right owner
+      - temporal_data:/home/temporal
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health", "--address", "localhost:7233"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # ── Observability: Prometheus collects the app's metrics, Grafana shows them ──
   prometheus:
@@ -104,3 +128,4 @@ volumes:
   app_uploads:
   prometheus_data:
   grafana_data:
+  temporal_data:

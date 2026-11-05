@@ -124,7 +124,7 @@
     },
     {
       "type": "timeseries", "title": "Order events per hour",
-      "description": "submitted = client sent the cart, approved = employee approved (stock taken), unapproved = approval taken back",
+      "description": "submitted = client sent the cart, approved = employee approved (stock taken), unapproved = approval taken back, approval_reminder = employees reminded (Temporal timer), expired = not approved in time, back in the cart",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 10, "x": 0, "y": 15 },
       "targets": [ { "refId": "A", "expr": "sum by (event) (increase(store_orders_total{application=\"appliance-store\"}[1h]))", "legendFormat": "{{event}}" } ],

@@ -2,6 +2,7 @@ package com.vovan4ok.appliance.store.listener;
 
 import com.vovan4ok.appliance.store.event.OrderApprovedEvent;
 import com.vovan4ok.appliance.store.event.OrderEmailData;
+import com.vovan4ok.appliance.store.event.OrderExpiredEvent;
 import com.vovan4ok.appliance.store.event.OrderSubmittedEvent;
 import com.vovan4ok.appliance.store.event.OrderUnapprovedEvent;
 import com.vovan4ok.appliance.store.metrics.StoreMetrics;
@@ -48,5 +49,12 @@ class OrderMetricsListenerTest {
         listener.onOrderUnapproved(new OrderUnapprovedEvent(1L));
 
         verify(metrics).orderUnapproved();
+    }
+
+    @Test
+    void expiredOrder_isCounted() {
+        listener.onOrderExpired(new OrderExpiredEvent(order(BigDecimal.TEN), 1L));
+
+        verify(metrics).orderExpired();
     }
 }

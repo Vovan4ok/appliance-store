@@ -1,6 +1,7 @@
 package com.vovan4ok.appliance.store.listener;
 
 import com.vovan4ok.appliance.store.event.OrderApprovedEvent;
+import com.vovan4ok.appliance.store.event.OrderExpiredEvent;
 import com.vovan4ok.appliance.store.event.OrderSubmittedEvent;
 import com.vovan4ok.appliance.store.event.OrderUnapprovedEvent;
 import com.vovan4ok.appliance.store.metrics.StoreMetrics;
@@ -32,5 +33,10 @@ public class OrderMetricsListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onOrderUnapproved(OrderUnapprovedEvent event) {
         metrics.orderUnapproved();
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onOrderExpired(OrderExpiredEvent event) {
+        metrics.orderExpired();
     }
 }

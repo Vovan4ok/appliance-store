@@ -8,6 +8,7 @@ import com.vovan4ok.appliance.store.service.ApplianceService;
 import com.vovan4ok.appliance.store.service.ClientService;
 import com.vovan4ok.appliance.store.service.EmployeeService;
 import com.vovan4ok.appliance.store.service.ManufacturerService;
+import com.vovan4ok.appliance.store.service.OrderApprovalProcess;
 import com.vovan4ok.appliance.store.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,9 @@ class OrdersControllerTest {
 
     @MockitoBean
     OrderService orderService;
+
+    @MockitoBean
+    OrderApprovalProcess orderApprovalProcess;
 
     @MockitoBean
     ClientService clientService;
@@ -217,7 +221,7 @@ class OrdersControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/orders"));
 
-        verify(orderService).approve(eq(1L));
+        verify(orderApprovalProcess).approve(eq(1L));
     }
 
     @Test
@@ -226,6 +230,6 @@ class OrdersControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/orders"));
 
-        verify(orderService).unapprove(eq(1L));
+        verify(orderApprovalProcess).unapprove(eq(1L));
     }
 }

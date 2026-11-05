@@ -43,6 +43,15 @@ class StoreMetricsTest {
     }
 
     @Test
+    void expiryAndReminders_areCountedAsOrderEvents() {
+        metrics.orderExpired();
+        metrics.approvalReminderSent();
+
+        assertThat(counter(StoreMetrics.ORDERS, "event", "expired")).isEqualTo(1);
+        assertThat(counter(StoreMetrics.ORDERS, "event", "approval_reminder")).isEqualTo(1);
+    }
+
+    @Test
     void orderApproved_withoutAmount_countsTheOrderOnly() {
         metrics.orderApproved(null);
 

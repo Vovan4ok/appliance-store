@@ -2,6 +2,7 @@ package com.vovan4ok.appliance.store.controller.api;
 
 import com.vovan4ok.appliance.store.model.Client;
 import com.vovan4ok.appliance.store.model.Orders;
+import com.vovan4ok.appliance.store.service.OrderApprovalProcess;
 import com.vovan4ok.appliance.store.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +52,9 @@ class OrderApiControllerTest {
 
     @MockitoBean
     OrderService orderService;
+
+    @MockitoBean
+    OrderApprovalProcess orderApprovalProcess;
 
     @MockitoBean
     UserDetailsService userDetailsService;
@@ -133,7 +137,7 @@ class OrderApiControllerTest {
         Orders approved = orderForClient("client@test.com");
         approved.setApproved(true);
 
-        doNothing().when(orderService).approve(1L);
+        doNothing().when(orderApprovalProcess).approve(1L);
         when(orderService.findById(1L)).thenReturn(Optional.of(approved));
 
         mockMvc.perform(post("/api/v1/orders/1/approve").with(csrf()))
@@ -147,6 +151,6 @@ class OrderApiControllerTest {
         mockMvc.perform(post("/api/v1/orders/1/approve").with(csrf()))
                 .andExpect(status().isForbidden());
 
-        verify(orderService, never()).approve(any());
+        verify(orderApprovalProcess, never()).approve(any());
     }
 }

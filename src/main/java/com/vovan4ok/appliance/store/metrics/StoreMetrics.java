@@ -60,6 +60,16 @@ public class StoreMetrics {
         orderEvent("unapproved");
     }
 
+    /** A pending order nobody approved in time went back to the client's cart. */
+    public void orderExpired() {
+        orderEvent("expired");
+    }
+
+    /** Employees were reminded that an order is still waiting for approval. */
+    public void approvalReminderSent() {
+        orderEvent("approval_reminder");
+    }
+
     private void orderEvent(String event) {
         Counter.builder(ORDERS)
                 .description("Order lifecycle events")

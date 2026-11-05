@@ -8,6 +8,7 @@ import com.vovan4ok.appliance.store.model.OrderRow;
 import com.vovan4ok.appliance.store.service.ApplianceService;
 import com.vovan4ok.appliance.store.service.ClientService;
 import com.vovan4ok.appliance.store.service.ManufacturerService;
+import com.vovan4ok.appliance.store.service.OrderApprovalProcess;
 import com.vovan4ok.appliance.store.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +46,9 @@ class ShopControllerTest {
 
     @MockitoBean
     OrderService orderService;
+
+    @MockitoBean
+    OrderApprovalProcess orderApprovalProcess;
 
     @MockitoBean
     ClientService clientService;
@@ -209,7 +213,7 @@ class ShopControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/orders/1/edit"));
 
-        verify(orderService).submitCart(eq(1L));
+        verify(orderApprovalProcess).submit(eq(1L));
     }
 
     @Test

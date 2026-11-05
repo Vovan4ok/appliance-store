@@ -1,9 +1,11 @@
 package com.vovan4ok.appliance.store.service;
 
 import com.vovan4ok.appliance.store.event.OrderApprovedEvent;
+import com.vovan4ok.appliance.store.event.OrderExpiredEvent;
 import com.vovan4ok.appliance.store.event.OrderSubmittedEvent;
 import com.vovan4ok.appliance.store.event.OrderUnapprovedEvent;
 import com.vovan4ok.appliance.store.model.Appliance;
+import com.vovan4ok.appliance.store.model.Client;
 import com.vovan4ok.appliance.store.model.OrderRow;
 import com.vovan4ok.appliance.store.model.Orders;
 import com.vovan4ok.appliance.store.repository.ApplianceInOrderRepository;
@@ -381,5 +383,106 @@ class OrderServiceImplTest {
         orderService.submitCart(99L);
 
         verify(ordersRepository, never()).save(any());
+    }
+
+    private static Appliance appliance(long id) {
+        Appliance appliance = new Appliance();
+        appliance.setId(id);
+        appliance.setName("Appliance " + id);
+        return appliance;
+    }
+
+    private static OrderRow rowOf(Appliance appliance, long quantity) {
+        OrderRow row = new OrderRow();
+        row.setAppliance(appliance);
+        row.setNumber(quantity);
+        row.setAmount(new BigDecimal("100.00"));
+        return row;
+    }
+
+    private static Orders pendingOrderOf(String email, Appliance appliance, long quantity) {
+        Client client = new Client();
+        client.setEmail(email);
+        Orders order = new Orders();
+        order.setId(1L);
+        order.setClient(client);
+        order.setApproved(null);
+        order.setOrderRowSet(new HashSet<>(Set.of(rowOf(appliance, quantity))));
+        return order;
+    }
+
+    @Test
+    void returnToCart_noOpenCart_turnsTheOrderBackIntoTheCart() {
+        Orders order = pendingOrderOf("c@test.com", appliance(10L), 2);
+        when(ordersRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(ordersRepository.findFirstByClient_EmailAndApprovedFalseOrderByIdDesc("c@test.com"))
+                .thenReturn(Optional.empty());
+
+        assertThat(orderService.returnToCart(1L)).isTrue();
+
+        assertThat(order.getApproved()).isFalse();
+        verify(ordersRepository).save(order);
+        verify(ordersRepository, never()).delete(any());
+        verify(eventPublisher).publishEvent(argThat((Object e) -> e instanceof OrderExpiredEvent expired
+                && expired.cartOrderId().equals(1L) && expired.order().getOrderId().equals(1L)));
+    }
+
+    @Test
+    void returnToCart_clientHasAnOpenCart_mergesTheItemsIntoIt() {
+        Appliance toaster = appliance(10L);
+        Orders order = pendingOrderOf("c@test.com", toaster, 2);
+        order.getOrderRowSet().add(rowOf(appliance(20L), 1));
+        Orders cart = new Orders();
+        cart.setId(9L);
+        cart.setApproved(false);
+        cart.setOrderRowSet(new HashSet<>(Set.of(rowOf(toaster, 3))));
+        when(ordersRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(ordersRepository.findFirstByClient_EmailAndApprovedFalseOrderByIdDesc("c@test.com"))
+                .thenReturn(Optional.of(cart));
+
+        assertThat(orderService.returnToCart(1L)).isTrue();
+
+        // Same appliance: quantities added up; another appliance: copied over
+        assertThat(cart.getOrderRowSet()).hasSize(2);
+        assertThat(cart.getOrderRowSet()).anySatisfy(row -> {
+            assertThat(row.getAppliance().getId()).isEqualTo(10L);
+            assertThat(row.getNumber()).isEqualTo(5L);
+        });
+        assertThat(cart.getOrderRowSet()).anySatisfy(row -> {
+            assertThat(row.getAppliance().getId()).isEqualTo(20L);
+            assertThat(row.getNumber()).isEqualTo(1L);
+        });
+        verify(ordersRepository).save(cart);
+        verify(ordersRepository).delete(order);
+        verify(eventPublisher).publishEvent(argThat((Object e) -> e instanceof OrderExpiredEvent expired
+                && expired.cartOrderId().equals(9L)));
+    }
+
+    @Test
+    void returnToCart_orderNoLongerPendingOrGone_changesNothing() {
+        Orders approved = pendingOrderOf("c@test.com", appliance(10L), 2);
+        approved.setApproved(true);
+        when(ordersRepository.findById(1L)).thenReturn(Optional.of(approved));
+        when(ordersRepository.findById(2L)).thenReturn(Optional.empty());
+
+        assertThat(orderService.returnToCart(1L)).isFalse();
+        assertThat(orderService.returnToCart(2L)).isFalse();
+
+        verify(ordersRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void isPending_onlyForSubmittedOrders() {
+        Orders pending = pendingOrderOf("c@test.com", appliance(10L), 1);
+        Orders cart = new Orders();
+        cart.setApproved(false);
+        when(ordersRepository.findById(1L)).thenReturn(Optional.of(pending));
+        when(ordersRepository.findById(2L)).thenReturn(Optional.of(cart));
+        when(ordersRepository.findById(3L)).thenReturn(Optional.empty());
+
+        assertThat(orderService.isPending(1L)).isTrue();
+        assertThat(orderService.isPending(2L)).isFalse();
+        assertThat(orderService.isPending(3L)).isFalse();
     }
 }

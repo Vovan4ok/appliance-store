@@ -3,6 +3,7 @@ package com.vovan4ok.appliance.store.service.impl;
 import com.vovan4ok.appliance.store.aspect.Loggable;
 import com.vovan4ok.appliance.store.event.OrderApprovedEvent;
 import com.vovan4ok.appliance.store.event.OrderEmailData;
+import com.vovan4ok.appliance.store.event.OrderExpiredEvent;
 import com.vovan4ok.appliance.store.event.OrderSubmittedEvent;
 import com.vovan4ok.appliance.store.event.OrderUnapprovedEvent;
 import com.vovan4ok.appliance.store.exception.InsufficientStockException;
@@ -185,6 +186,61 @@ public class OrderServiceImpl implements OrderService {
             ordersRepository.save(order);
             eventPublisher.publishEvent(new OrderSubmittedEvent(OrderEmailData.from(order)));
         });
+    }
+
+    @Loggable
+    @Transactional
+    @Override
+    public boolean returnToCart(Long orderId) {
+        Orders order = ordersRepository.findById(orderId).orElse(null);
+        // Approved, deleted or already back in the cart in the meantime: the database decides, nothing to do
+        if (order == null || order.getApproved() != null) {
+            return false;
+        }
+        OrderEmailData snapshot = OrderEmailData.from(order);
+        String email = order.getClient() != null ? order.getClient().getEmail() : null;
+        Orders cart = email != null
+                ? ordersRepository.findFirstByClient_EmailAndApprovedFalseOrderByIdDesc(email).orElse(null)
+                : null;
+
+        Long cartId;
+        if (cart == null) {
+            order.setApproved(false);
+            ordersRepository.save(order);
+            cartId = order.getId();
+        } else {
+            // The client already started a new cart: add the expired items to it so nothing is lost
+            for (OrderRow row : order.getOrderRowSet()) {
+                mergeInto(cart, row);
+            }
+            ordersRepository.save(cart);
+            ordersRepository.delete(order);
+            cartId = cart.getId();
+        }
+        eventPublisher.publishEvent(new OrderExpiredEvent(snapshot, cartId));
+        return true;
+    }
+
+    private static void mergeInto(Orders cart, OrderRow expiredRow) {
+        Long applianceId = expiredRow.getAppliance() != null ? expiredRow.getAppliance().getId() : null;
+        Optional<OrderRow> same = cart.getOrderRowSet().stream()
+                .filter(row -> row.getAppliance() != null && row.getAppliance().getId().equals(applianceId))
+                .findFirst();
+        if (same.isPresent()) {
+            same.get().setNumber(same.get().getNumber() + expiredRow.getNumber());
+        } else {
+            // A copy: the original row is removed together with the expired order
+            OrderRow copy = new OrderRow();
+            copy.setAppliance(expiredRow.getAppliance());
+            copy.setNumber(expiredRow.getNumber());
+            copy.setAmount(expiredRow.getAmount());
+            cart.getOrderRowSet().add(copy);
+        }
+    }
+
+    @Override
+    public boolean isPending(Long orderId) {
+        return ordersRepository.findById(orderId).map(order -> order.getApproved() == null).orElse(false);
     }
 
     @Override

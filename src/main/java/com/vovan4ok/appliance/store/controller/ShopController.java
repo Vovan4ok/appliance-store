@@ -10,6 +10,7 @@ import com.vovan4ok.appliance.store.model.dto.ManufacturerDto;
 import com.vovan4ok.appliance.store.service.ApplianceService;
 import com.vovan4ok.appliance.store.service.ClientService;
 import com.vovan4ok.appliance.store.service.ManufacturerService;
+import com.vovan4ok.appliance.store.service.OrderApprovalProcess;
 import com.vovan4ok.appliance.store.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,7 @@ public class ShopController {
 
     private final ApplianceService applianceService;
     private final OrderService orderService;
+    private final OrderApprovalProcess orderApprovalProcess;
     private final ClientService clientService;
     private final ManufacturerService manufacturerService;
 
@@ -94,7 +96,7 @@ public class ShopController {
     @PostMapping("/checkout")
     public String checkout(@RequestParam Long orderId) {
         log.info("Client submitting cart as order id={}", orderId);
-        orderService.submitCart(orderId);
+        orderApprovalProcess.submit(orderId);
         return "redirect:/orders/" + orderId + "/edit";
     }
 

@@ -15,6 +15,7 @@ import com.vovan4ok.appliance.store.service.ApplianceService;
 import com.vovan4ok.appliance.store.service.ClientService;
 import com.vovan4ok.appliance.store.service.EmployeeService;
 import com.vovan4ok.appliance.store.service.ManufacturerService;
+import com.vovan4ok.appliance.store.service.OrderApprovalProcess;
 import com.vovan4ok.appliance.store.service.OrderService;
 
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,7 @@ import java.math.BigDecimal;
 public class OrdersController {
 
     private final OrderService orderService;
+    private final OrderApprovalProcess orderApprovalProcess;
     private final ClientService clientService;
     private final EmployeeService employeeService;
     private final ApplianceService applianceService;
@@ -180,7 +182,7 @@ public class OrdersController {
     public String approve(@PathVariable Long id, Model model) {
         log.info("Approving order id={}", id);
         try {
-            orderService.approve(id);
+            orderApprovalProcess.approve(id);
             return "redirect:/orders";
         } catch (InsufficientStockException e) {
             log.warn("Approval blocked for order id={}: {}", id, e.getMessage());
@@ -198,7 +200,7 @@ public class OrdersController {
     @GetMapping("/{id}/unapproved")
     public String unapprove(@PathVariable Long id) {
         log.info("Unapproving order id={}", id);
-        orderService.unapprove(id);
+        orderApprovalProcess.unapprove(id);
         return "redirect:/orders";
     }
 }

@@ -16,7 +16,8 @@ A full-stack e-commerce web application for managing and selling home appliances
 - **Frontend:** Thymeleaf, Bootstrap 5
 - **Database:** PostgreSQL (prod) / H2 (dev)
 - **Migrations:** Flyway
-- **Containerization:** Docker, Docker Compose (app, PostgreSQL, Redis, Mailpit, Prometheus, Grafana)
+- **Workflows:** Temporal (Java SDK) — durable order-approval workflow with reminder and expiry timers
+- **Containerization:** Docker, Docker Compose (app, PostgreSQL, Redis, Temporal, Mailpit, Prometheus, Grafana)
 - **Observability:** Micrometer metrics (HTTP, JVM, database pool, Redis, Spring AI + custom business metrics) scraped by Prometheus, provisioned Grafana dashboard; Actuator health check
 - **Testing:** JUnit 5, Mockito, MockMvc, Testcontainers (real Redis in Docker)
 - **Build:** Maven
@@ -30,7 +31,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - Browse and filter appliances by category, manufacturer, power type, price, and availability ("In stock only")
 - Out-of-stock appliances shown with a blurred overlay — visible but unorderable
 - Shopping cart — add items, update quantities, remove rows; warns if a cart item goes out of stock
-- Submit orders for employee review
+- Submit orders for employee review; an order nobody approves within 72 hours comes back to the cart (with an email)
 - View order history
 - Manufacturer list (card-grid) with name search and pagination; click any card to open the detail page with full info and a "Browse Appliances" link filtered to that brand
 - Profile page — edit name, phone, date of birth, card number; change password; upload avatar
@@ -42,6 +43,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - Manage stock levels directly on the appliance create/edit form
 - "AI suggest" button on the appliance edit page — fills the description with an AI marketing text in the current UI language (English or Ukrainian), with undo; the employee reviews it and saves (see [AI Product Descriptions](#ai-product-descriptions))
 - Approve / unapprove submitted orders — approval validates and decrements stock; blocked with a clear error if any item is out of stock
+- Email reminder when a submitted order has waited 24 hours for approval
 - View all orders across all clients
 - Client and employee list tables show phone and date of birth
 - Profile page — edit profile details, change password, upload avatar
@@ -122,6 +124,27 @@ Redis backs three features, each behind an interface with an in-memory implement
   ./mvnw dependency-check:check -DnvdApiKey=<your key>
   # report: target/dependency-check-report.html
   ```
+
+### Order Approval Workflow (Temporal)
+Every submitted order runs as a [Temporal](https://temporal.io) workflow (`workflow/OrderApprovalWorkflow`, id `order-<id>`) that waits for an employee's decision:
+
+```
+client submits ──► workflow waits (durable timer)
+                     ├─ employee approves ─► stock check + approval (one DB transaction) ─► APPROVED
+                     ├─ 24h, no decision ──► reminder email to all employees, keeps waiting
+                     └─ 72h, no decision ──► order back to the client's cart + email ───► EXPIRED
+```
+
+- **Durable timers:** Temporal stores the timers and the workflow state, not the app — reminders and expiry still happen after restarts and deployments (verified by restarting the app mid-wait)
+- **Synchronous approval via a workflow Update:** the employee's click waits for the result, so "not enough stock" is still shown immediately; the workflow keeps waiting after a failed attempt. A validator rejects approvals once the workflow has decided
+- **Activities are idempotent** (`workflow/OrderApprovalActivitiesImpl`): each re-reads the order and does nothing if it was approved, deleted or changed in the meantime — the database stays the source of truth, and Temporal can retry them safely
+- **Back to the cart without losing anything:** if the client already started a new cart, the expired items are merged into it (same appliance → quantities added). No stock to give back — stock is only taken on approval
+- **Fail-open like Redis:** when Temporal is unreachable the shop keeps working (orders are submitted and approved directly), only the reminder/expiry of those orders is lost; `/actuator/health` shows `temporal: DOWN`
+- Orders submitted before Temporal was enabled have no workflow and are approved directly
+- **Off in `dev`/`test`** (`app.temporal.enabled`): orders are approved directly, so local development needs no Temporal server. Tests run the real workflow on Temporal's in-memory test server with time skipping — the 24h/72h timers take milliseconds
+- **Temporal Web UI** at `http://localhost:8233` (Docker Compose): every order's workflow with its timers, history and result
+- Timers are configurable (`ORDER_APPROVAL_REMINDER_AFTER`, `ORDER_APPROVAL_EXPIRE_AFTER`), e.g. `1m` / `2m` to watch the whole lifecycle live
+- The Grafana dashboard counts reminders and expired orders next to the other order events
 
 ### Observability
 The app exports metrics in Prometheus format (Micrometer); `docker compose up` also starts **Prometheus** (`http://localhost:9090`) and **Grafana** (`http://localhost:3000`, login from `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`, default `admin` / `admin`), which opens the ready-made **Appliance Store** dashboard:
@@ -204,6 +227,7 @@ App starts at `http://localhost:8080` backed by PostgreSQL with Flyway-managed s
 Avatar uploads are stored in the `app_uploads` Docker volume; Redis data (append-only file) in `redis_data`.
 Health check: `http://localhost:8081/actuator/health` (management port, this machine only).
 Metrics: Prometheus at `http://localhost:9090`, Grafana dashboard at `http://localhost:3000`.
+Order-approval workflows: Temporal Web UI at `http://localhost:8233` (workflow state in the `temporal_data` volume).
 A [Mailpit](https://mailpit.axllent.org/) container catches all outgoing email — open its inbox at `http://localhost:8025`.
 
 ## Configuration Profiles
@@ -242,6 +266,7 @@ src/
 │   ├── event/           # Application events (registration, orders, password)
 │   ├── listener/        # Email notification + order metrics listeners
 │   ├── metrics/         # Micrometer business metrics (StoreMetrics) and gauges
+│   ├── workflow/        # Temporal order-approval workflow, activities and client-side process
 │   ├── aspect/          # AOP logging
 │   └── validation/      # Custom password constraint
 ├── main/resources/
@@ -272,6 +297,10 @@ src/
 | `SPRING_AI_OPENAI_CHAT_MODEL` | Optional OpenAI model override (default: `gpt-5-mini`; `reasoning-effort=minimal` assumes a GPT-5-family model) |
 | `REDIS_HOST` | Redis host (default: `localhost`; Docker Compose sets `redis`) |
 | `REDIS_PORT` | Redis port (default: `6379`) |
+| `TEMPORAL_ADDRESS` | Temporal server (default: `localhost:7233`; Docker Compose sets `temporal:7233`) |
+| `TEMPORAL_NAMESPACE` | Temporal namespace (default: `default`) |
+| `ORDER_APPROVAL_REMINDER_AFTER` | Time until employees are reminded about a pending order (default: `24h`) |
+| `ORDER_APPROVAL_EXPIRE_AFTER` | Time until a pending order goes back to the cart (default: `72h`) |
 | `MANAGEMENT_PORT` | Port for `/actuator/health` and `/actuator/prometheus` (default: `8081`) |
 | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | Grafana login under Docker Compose (default: `admin` / `admin`) |
 

@@ -29,6 +29,18 @@ public interface OrderService {
 
     void submitCart(Long orderId);
 
+    /**
+     * Sends a pending order that nobody approved in time back to its client's cart: merged into the client's
+     * open cart if there is one, otherwise the order itself becomes the cart again. No stock to give back, since
+     * stock is only taken on approval.
+     *
+     * @return false if the order no longer exists or is not pending anymore (nothing changed)
+     */
+    boolean returnToCart(Long orderId);
+
+    /** True if the order exists and is waiting for an employee's approval. */
+    boolean isPending(Long orderId);
+
     void addOrderRow(Long orderId, Long applianceId, Long number, BigDecimal price);
 
     void removeOrderRow(Long rowId);

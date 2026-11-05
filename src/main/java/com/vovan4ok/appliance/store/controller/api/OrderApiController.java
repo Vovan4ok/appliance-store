@@ -2,6 +2,7 @@ package com.vovan4ok.appliance.store.controller.api;
 
 import com.vovan4ok.appliance.store.model.dto.api.OrderResponse;
 import com.vovan4ok.appliance.store.model.dto.api.PageResponse;
+import com.vovan4ok.appliance.store.service.OrderApprovalProcess;
 import com.vovan4ok.appliance.store.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderApiController {
 
     private final OrderService orderService;
+    private final OrderApprovalProcess orderApprovalProcess;
 
     @GetMapping
     @Operation(summary = "List orders — EMPLOYEE sees all, CLIENT sees own orders")
@@ -67,7 +69,7 @@ public class OrderApiController {
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Approve an order (EMPLOYEE only)")
     public OrderResponse approve(@PathVariable Long id) {
-        orderService.approve(id);
+        orderApprovalProcess.approve(id);
         return OrderResponse.from(orderService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + id)));
     }

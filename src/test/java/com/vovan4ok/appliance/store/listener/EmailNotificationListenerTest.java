@@ -2,6 +2,7 @@ package com.vovan4ok.appliance.store.listener;
 
 import com.vovan4ok.appliance.store.event.OrderApprovedEvent;
 import com.vovan4ok.appliance.store.event.OrderEmailData;
+import com.vovan4ok.appliance.store.event.OrderExpiredEvent;
 import com.vovan4ok.appliance.store.event.OrderSubmittedEvent;
 import com.vovan4ok.appliance.store.event.PasswordChangedEvent;
 import com.vovan4ok.appliance.store.event.RegistrationCompletedEvent;
@@ -17,6 +18,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
@@ -52,6 +54,14 @@ class EmailNotificationListenerTest {
         listener.onOrderApproved(new OrderApprovedEvent(order()));
 
         verify(emailService).sendHtml(eq("sam@mail.com"), anyString(), eq("email/order-approved"), anyMap());
+    }
+
+    @Test
+    void onOrderExpired_tellsTheClientTheItemsAreBackInTheCart() {
+        listener.onOrderExpired(new OrderExpiredEvent(order(), 7L));
+
+        verify(emailService).sendHtml(eq("sam@mail.com"), contains("back in your cart"),
+                eq("email/order-expired"), anyMap());
     }
 
     @Test

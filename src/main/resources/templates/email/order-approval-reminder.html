@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+       style="background:#f4f4f5;padding:24px 0;font-family:Arial,Helvetica,sans-serif;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0"
+                   style="background:#ffffff;border-radius:8px;overflow:hidden;">
+                <tr>
+                    <td th:replace="~{email/fragments :: header}"></td>
+                </tr>
+                <tr>
+                    <td style="padding:32px;color:#333333;font-size:15px;line-height:1.6;">
+                        <h2 style="margin-top:0;color:#0d6efd;">
+                            Order #<span th:text="${order.orderId}">1</span> is waiting for approval
+                        </h2>
+                        <p>
+                            The order from <strong th:text="${order.clientName}">Customer</strong>
+                            (<span th:text="${order.clientEmail}">client@example.com</span>) was submitted
+                            <span th:text="${waitingHours}">24</span> hours ago and nobody has approved it yet.
+                            If it is still not approved <span th:text="${hoursLeft}">48</span> hours from now,
+                            it goes back to the client's cart automatically.
+                        </p>
+                        <p style="font-size:16px;margin-bottom:0;">
+                            <strong>Order total:
+                                <span th:text="${order.totalAmount}">0</span></strong>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td th:replace="~{email/fragments :: footer}"></td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>
