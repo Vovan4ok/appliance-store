@@ -38,18 +38,28 @@ jobs:
         if: env.NVD_API_KEY == ''
         run: echo "::warning title=Dependency scan skipped::Add the NVD_API_KEY repository secret to enable OWASP Dependency-Check"
 
-      # The vulnerability database is large; restore the last copy so only changes are downloaded
+      # The vulnerability database is large; restore the newest copy so only changes are downloaded
       - name: Restore vulnerability database
         if: env.NVD_API_KEY != ''
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/.dependency-check/data
           key: dependency-check-db-${{ github.run_id }}
           restore-keys: dependency-check-db-
 
       - name: Scan dependencies (fails on CVSS >= 7)
+        id: scan
         if: env.NVD_API_KEY != ''
         run: ./mvnw -B -ntp dependency-check:check -DnvdApiKey="$NVD_API_KEY"
+
+      # Saved separately (not by actions/cache's post step) so the database is kept even when the scan
+      # fails the build on a vulnerability; skipped on cancel, where the download may be incomplete
+      - name: Save vulnerability database
+        if: "!cancelled() && env.NVD_API_KEY != '' && steps.scan.conclusion != 'skipped'"
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.dependency-check/data
+          key: dependency-check-db-${{ github.run_id }}
 
       - name: Upload findings to the Security tab
         if: always() && env.NVD_API_KEY != '' && hashFiles('target/dependency-check-report.sarif') != ''
