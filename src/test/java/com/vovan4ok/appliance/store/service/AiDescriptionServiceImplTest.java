@@ -1,6 +1,7 @@
 package com.vovan4ok.appliance.store.service;
 
 import com.vovan4ok.appliance.store.config.CacheConfig;
+import com.vovan4ok.appliance.store.metrics.StoreMetrics;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.Category;
 import com.vovan4ok.appliance.store.model.Manufacturer;
@@ -8,6 +9,7 @@ import com.vovan4ok.appliance.store.model.PowerType;
 import com.vovan4ok.appliance.store.model.dto.api.AiDescriptionResponse;
 import com.vovan4ok.appliance.store.service.ApplianceService;
 import com.vovan4ok.appliance.store.service.impl.AiDescriptionServiceImpl;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -62,6 +64,10 @@ public class AiDescriptionServiceImplTest {
     // Real in-memory cache (what dev/test use); RedisAiDescriptionCacheTest covers the Redis-backed one
     CacheManager cacheManager = new ConcurrentMapCacheManager(CacheConfig.AI_DESCRIPTIONS);
 
+    // Real registry, so the tests can read what was recorded
+    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+    StoreMetrics metrics = new StoreMetrics(meterRegistry);
+
     private static Appliance appliance() {
         Manufacturer m = new Manufacturer();
         m.setName("Philips");
@@ -89,7 +95,7 @@ public class AiDescriptionServiceImplTest {
         when(requestSpec.user(anyString())).thenReturn(requestSpec);
         when(requestSpec.call()).thenReturn(callResponse);
         return new AiDescriptionServiceImpl(applianceService, messageSource, cacheManager, chatModelProvider,
-                chatClientBuilderProvider);
+                chatClientBuilderProvider, metrics);
     }
 
     @Test
@@ -213,7 +219,7 @@ public class AiDescriptionServiceImplTest {
         when(chatClientBuilder.build()).thenReturn(chatClient);
         when(applianceService.findById(1L)).thenReturn(Optional.of(junk));
         AiDescriptionServiceImpl service = new AiDescriptionServiceImpl(applianceService, messageSource,
-                cacheManager, chatModelProvider, chatClientBuilderProvider);
+                cacheManager, chatModelProvider, chatClientBuilderProvider, metrics);
 
         AiDescriptionResponse result = service.generate(1L, Locale.ENGLISH);
 
@@ -227,7 +233,7 @@ public class AiDescriptionServiceImplTest {
         when(chatModelProvider.getIfAvailable()).thenReturn(null);
         when(applianceService.findById(1L)).thenReturn(Optional.of(appliance()));
         AiDescriptionServiceImpl service = new AiDescriptionServiceImpl(applianceService, messageSource,
-                cacheManager, chatModelProvider, chatClientBuilderProvider);
+                cacheManager, chatModelProvider, chatClientBuilderProvider, metrics);
 
         AiDescriptionResponse result = service.generate(1L, Locale.ENGLISH);
 
@@ -244,7 +250,7 @@ public class AiDescriptionServiceImplTest {
         when(chatModelProvider.getIfAvailable()).thenReturn(null);
         when(applianceService.findById(99L)).thenReturn(Optional.empty());
         AiDescriptionServiceImpl service = new AiDescriptionServiceImpl(applianceService, messageSource,
-                cacheManager, chatModelProvider, chatClientBuilderProvider);
+                cacheManager, chatModelProvider, chatClientBuilderProvider, metrics);
 
         assertThatThrownBy(() -> service.generate(99L, Locale.ENGLISH))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -316,5 +322,44 @@ public class AiDescriptionServiceImplTest {
 
         assertThat(result.source()).isEqualTo(AiDescriptionResponse.Source.AI);
         assertThat(result.description()).isEqualTo("Crispy toast.");
+    }
+
+    private long aiRequests(String outcome, String reason) {
+        return meterRegistry.get(StoreMetrics.AI_DESCRIPTIONS).tags("outcome", outcome, "reason", reason).timer().count();
+    }
+
+    @Test
+    void metrics_generatedThenCached_areTimedSeparately() {
+        AiDescriptionServiceImpl service = serviceWithAi(appliance(), "English", Locale.ENGLISH);
+        when(callResponse.content()).thenReturn("Crispy toast.");
+
+        service.generate(1L, Locale.ENGLISH);
+        service.generate(1L, Locale.ENGLISH);
+
+        assertThat(aiRequests("generated", "none")).isEqualTo(1);
+        assertThat(aiRequests("cached", "none")).isEqualTo(1);
+    }
+
+    @Test
+    void metrics_fallback_isRecordedWithItsReason() {
+        AiDescriptionServiceImpl service = serviceWithAi(appliance(), "English", Locale.ENGLISH);
+        when(callResponse.content()).thenThrow(new RuntimeException("Read timed out"));
+
+        service.generate(1L, Locale.ENGLISH);
+
+        assertThat(aiRequests("fallback", "AI_ERROR")).isEqualTo(1);
+        assertThat(meterRegistry.find(StoreMetrics.AI_DESCRIPTIONS).tag("outcome", "generated").timer()).isNull();
+    }
+
+    @Test
+    void metrics_aiDisabled_isRecordedAsFallback() {
+        when(chatModelProvider.getIfAvailable()).thenReturn(null);
+        when(applianceService.findById(1L)).thenReturn(Optional.of(appliance()));
+        AiDescriptionServiceImpl service = new AiDescriptionServiceImpl(applianceService, messageSource,
+                cacheManager, chatModelProvider, chatClientBuilderProvider, metrics);
+
+        service.generate(1L, Locale.ENGLISH);
+
+        assertThat(aiRequests("fallback", "AI_DISABLED")).isEqualTo(1);
     }
 }

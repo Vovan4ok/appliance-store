@@ -1,0 +1,12 @@
+# Loads every dashboard JSON from /var/lib/grafana/dashboards (mounted from observability/grafana/dashboards).
+# Dashboards live in the repo: change the JSON and restart Grafana, edits made in the UI are not kept.
+apiVersion: 1
+
+providers:
+  - name: appliance-store
+    folder: Appliance Store
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards

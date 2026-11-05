@@ -1,5 +1,7 @@
 package com.vovan4ok.appliance.store.controller;
 
+import com.vovan4ok.appliance.store.metrics.StoreMetrics;
+import com.vovan4ok.appliance.store.metrics.StoreMetrics.Channel;
 import com.vovan4ok.appliance.store.security.JwtUtils;
 import com.vovan4ok.appliance.store.security.TokenDenylist;
 import jakarta.servlet.http.Cookie;
@@ -23,6 +25,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
     private final TokenDenylist tokenDenylist;
+    private final StoreMetrics metrics;
 
     @PostMapping("/login")
     public String login(@RequestParam String username,
@@ -44,9 +47,11 @@ public class AuthController {
             cookie.setPath("/");
             cookie.setMaxAge((int) (jwtUtils.getExpirationMs() / 1000));
             response.addCookie(cookie);
+            metrics.login(Channel.WEB, true);
 
             return "redirect:/";
         } catch (AuthenticationException e) {
+            metrics.login(Channel.WEB, false);
             return "redirect:/login?error";
         }
     }
@@ -57,6 +62,7 @@ public class AuthController {
         // Deleting the cookie is not enough: a copied token would stay valid until it expires
         if (token != null && jwtUtils.isValid(token)) {
             tokenDenylist.revoke(jwtUtils.extractId(token), jwtUtils.remainingLifetime(token));
+            metrics.logout(Channel.WEB);
         }
         Cookie cookie = new Cookie("jwt", "");
         cookie.setHttpOnly(true);

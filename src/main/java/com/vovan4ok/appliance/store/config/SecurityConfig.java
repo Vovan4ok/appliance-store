@@ -58,8 +58,9 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/", "/login", "/register", "/auth/login", "/auth/logout",
                                 "/favicon.ico", "/uploads/**").permitAll()
-                        // Health check (Docker / load balancers); no other actuator endpoint is exposed
-                        .requestMatchers("/actuator/health").permitAll()
+                        // Health check (Docker / load balancers) and metrics for Prometheus; no other actuator
+                        // endpoint is exposed. In prod both live only on the internal management port (8081).
+                        .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
                         // Swagger UI + OpenAPI docs
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         // REST API — auth endpoint is public

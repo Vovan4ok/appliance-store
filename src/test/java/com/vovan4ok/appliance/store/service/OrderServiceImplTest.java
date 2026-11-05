@@ -2,6 +2,7 @@ package com.vovan4ok.appliance.store.service;
 
 import com.vovan4ok.appliance.store.event.OrderApprovedEvent;
 import com.vovan4ok.appliance.store.event.OrderSubmittedEvent;
+import com.vovan4ok.appliance.store.event.OrderUnapprovedEvent;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.OrderRow;
 import com.vovan4ok.appliance.store.model.Orders;
@@ -193,6 +194,7 @@ class OrderServiceImplTest {
         assertThat(appliance.getStock()).isEqualTo(5);
         assertThat(order.getApproved()).isNull();
         verify(applianceRepository).save(appliance);
+        verify(eventPublisher).publishEvent(any(OrderUnapprovedEvent.class));
     }
 
     @Test
@@ -213,6 +215,7 @@ class OrderServiceImplTest {
         assertThat(appliance.getStock()).isEqualTo(3);
         verify(applianceRepository, never()).save(any());
         verify(ordersRepository).save(order);
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.vovan4ok.appliance.store.controller.api;
 
 import tools.jackson.databind.ObjectMapper;
 import com.vovan4ok.appliance.store.config.SecurityConfig;
+import com.vovan4ok.appliance.store.metrics.StoreMetrics;
 import com.vovan4ok.appliance.store.model.dto.api.LoginRequest;
 import com.vovan4ok.appliance.store.security.JwtUtils;
 import com.vovan4ok.appliance.store.security.TokenDenylist;
@@ -55,6 +56,9 @@ class ApiAuthControllerTest {
     @MockitoBean
     TokenDenylist tokenDenylist;
 
+    @MockitoBean
+    StoreMetrics metrics;
+
     @Test
     void login_validCredentials_returnsToken() throws Exception {
         var mockAuth = new UsernamePasswordAuthenticationToken(
@@ -73,6 +77,8 @@ class ApiAuthControllerTest {
                 .andExpect(jsonPath("$.token").isString())
                 .andExpect(jsonPath("$.type").value("Bearer"))
                 .andExpect(jsonPath("$.expiresIn").value(3600000));
+
+        verify(metrics).login(StoreMetrics.Channel.API, true);
     }
 
     @Test
@@ -90,6 +96,8 @@ class ApiAuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("Unauthorized"));
+
+        verify(metrics).login(StoreMetrics.Channel.API, false);
     }
 
     @Test
@@ -128,6 +136,7 @@ class ApiAuthControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(tokenDenylist).revoke(eq(jwtUtils.extractId(token)), any());
+        verify(metrics).logout(StoreMetrics.Channel.API);
     }
 
     @Test

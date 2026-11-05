@@ -1,5 +1,7 @@
 package com.vovan4ok.appliance.store.controller.api;
 
+import com.vovan4ok.appliance.store.metrics.StoreMetrics;
+import com.vovan4ok.appliance.store.metrics.StoreMetrics.Channel;
 import com.vovan4ok.appliance.store.model.dto.api.ErrorResponse;
 import com.vovan4ok.appliance.store.model.dto.api.LoginRequest;
 import com.vovan4ok.appliance.store.model.dto.api.TokenResponse;
@@ -33,6 +35,7 @@ public class ApiAuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
     private final TokenDenylist tokenDenylist;
+    private final StoreMetrics metrics;
 
     @PostMapping("/login")
     @SecurityRequirements
@@ -48,8 +51,10 @@ public class ApiAuthController {
                     .orElse("ROLE_CLIENT");
 
             String token = jwtUtils.generateToken(request.getEmail(), role);
+            metrics.login(Channel.API, true);
             return ResponseEntity.ok(new TokenResponse(token, jwtUtils.getExpirationMs()));
         } catch (AuthenticationException e) {
+            metrics.login(Channel.API, false);
             return ResponseEntity.status(401).body(
                     new ErrorResponse(401, "Unauthorized", "Invalid email or password", "/api/v1/auth/login"));
         }
@@ -66,6 +71,7 @@ public class ApiAuthController {
         // Only reachable with a valid, non-revoked token: /api/v1/** requires authentication
         String token = authorization.substring(BEARER_PREFIX.length());
         tokenDenylist.revoke(jwtUtils.extractId(token), jwtUtils.remainingLifetime(token));
+        metrics.logout(Channel.API);
         return ResponseEntity.noContent().build();
     }
 }

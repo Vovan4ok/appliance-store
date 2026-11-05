@@ -2,12 +2,15 @@ package com.vovan4ok.appliance.store.service.impl;
 
 import com.vovan4ok.appliance.store.aspect.Loggable;
 import com.vovan4ok.appliance.store.config.CacheConfig;
+import com.vovan4ok.appliance.store.metrics.StoreMetrics;
+import com.vovan4ok.appliance.store.metrics.StoreMetrics.AiOutcome;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.Category;
 import com.vovan4ok.appliance.store.model.PowerType;
 import com.vovan4ok.appliance.store.model.dto.api.AiDescriptionResponse;
 import com.vovan4ok.appliance.store.service.AiDescriptionService;
 import com.vovan4ok.appliance.store.service.ApplianceService;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
@@ -49,15 +52,18 @@ public class AiDescriptionServiceImpl implements AiDescriptionService {
     private final MessageSource messageSource;
     private final CacheManager cacheManager;
     private final ChatClient chatClient;
+    private final StoreMetrics metrics;
 
     public AiDescriptionServiceImpl(ApplianceService applianceService,
                                     MessageSource messageSource,
                                     CacheManager cacheManager,
                                     ObjectProvider<ChatModel> chatModel,
-                                    ObjectProvider<ChatClient.Builder> chatClientBuilder) {
+                                    ObjectProvider<ChatClient.Builder> chatClientBuilder,
+                                    StoreMetrics metrics) {
         this.applianceService = applianceService;
         this.messageSource = messageSource;
         this.cacheManager = cacheManager;
+        this.metrics = metrics;
         // Only a ChatModel proves AI is on: the ChatClient.Builder bean is defined either way
         this.chatClient = chatModel.getIfAvailable() != null ? chatClientBuilder.getObject().build() : null;
     }
@@ -68,13 +74,14 @@ public class AiDescriptionServiceImpl implements AiDescriptionService {
         Appliance appliance = applianceService.findById(applianceId)
                 .orElseThrow(() -> new IllegalArgumentException("Appliance not found: " + applianceId));
         Locale target = UKRAINIAN.getLanguage().equals(locale.getLanguage()) ? UKRAINIAN : Locale.ENGLISH;
+        Timer.Sample sample = metrics.startTimer();
 
         if (chatClient == null) {
-            return fallback(appliance, target, "AI_DISABLED");
+            return fallback(sample, appliance, target, "AI_DISABLED");
         }
         // Without real characteristics the model can only invent things, so don't ask it
         if (clean(appliance.getCharacteristic()).isEmpty()) {
-            return fallback(appliance, target, "INSUFFICIENT_DATA");
+            return fallback(sample, appliance, target, "INSUFFICIENT_DATA");
         }
         String systemPrompt = SYSTEM_PROMPT.formatted(
                 messageSource.getMessage("ai.prompt.language", null, target));
@@ -85,7 +92,7 @@ public class AiDescriptionServiceImpl implements AiDescriptionService {
         String cached = cacheGet(cacheKey);
         if (cached != null) {
             log.debug("AI description cache hit for appliance id={}", applianceId);
-            return aiResponse(appliance, target, cached);
+            return aiResponse(sample, AiOutcome.CACHED, appliance, target, cached);
         }
         try {
             String text = chatClient.prompt()
@@ -94,18 +101,20 @@ public class AiDescriptionServiceImpl implements AiDescriptionService {
                     .call()
                     .content();
             if (text == null || text.isBlank()) {
-                return fallback(appliance, target, "EMPTY_RESPONSE");
+                return fallback(sample, appliance, target, "EMPTY_RESPONSE");
             }
             String description = truncate(text.strip(), MAX_DESCRIPTION_LENGTH);
             cachePut(cacheKey, description);
-            return aiResponse(appliance, target, description);
+            return aiResponse(sample, AiOutcome.GENERATED, appliance, target, description);
         } catch (RuntimeException e) {
             log.warn("AI description failed for appliance id={}: {}", applianceId, e.getMessage());
-            return fallback(appliance, target, "AI_ERROR");
+            return fallback(sample, appliance, target, "AI_ERROR");
         }
     }
 
-    private AiDescriptionResponse aiResponse(Appliance appliance, Locale target, String description) {
+    private AiDescriptionResponse aiResponse(Timer.Sample sample, AiOutcome outcome,
+                                             Appliance appliance, Locale target, String description) {
+        metrics.aiDescription(sample, outcome, null);
         return new AiDescriptionResponse(appliance.getId(), target.getLanguage(),
                 description, AiDescriptionResponse.Source.AI, null);
     }
@@ -141,7 +150,8 @@ public class AiDescriptionServiceImpl implements AiDescriptionService {
         }
     }
 
-    private AiDescriptionResponse fallback(Appliance appliance, Locale target, String reason) {
+    private AiDescriptionResponse fallback(Timer.Sample sample, Appliance appliance, Locale target, String reason) {
+        metrics.aiDescription(sample, AiOutcome.FALLBACK, reason);
         return new AiDescriptionResponse(appliance.getId(), target.getLanguage(),
                 appliance.getDescription(), AiDescriptionResponse.Source.FALLBACK, reason);
     }

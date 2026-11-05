@@ -2,6 +2,7 @@ package com.vovan4ok.appliance.store.controller.api;
 
 import com.vovan4ok.appliance.store.config.SecurityConfig;
 import com.vovan4ok.appliance.store.exception.RateLimitExceededException;
+import com.vovan4ok.appliance.store.metrics.StoreMetrics;
 import com.vovan4ok.appliance.store.model.dto.api.AiDescriptionResponse;
 import com.vovan4ok.appliance.store.service.AiDescriptionService;
 import com.vovan4ok.appliance.store.service.ApplianceService;
@@ -46,6 +47,9 @@ public class ApplianceAiDescriptionApiTest {
     ManufacturerService manufacturerService;
     @MockitoBean
     AiDescriptionService aiDescriptionService;
+
+    @MockitoBean
+    StoreMetrics metrics;
     @MockitoBean
     UserDetailsService userDetailsService;
 
@@ -125,5 +129,6 @@ public class ApplianceAiDescriptionApiTest {
                 .andExpect(jsonPath("$.error").value("Too Many Requests"));
 
         verify(aiDescriptionService, never()).generate(any(), any());
+        verify(metrics).aiRateLimited();
     }
 }

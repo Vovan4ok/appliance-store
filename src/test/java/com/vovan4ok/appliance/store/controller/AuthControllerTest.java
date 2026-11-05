@@ -1,6 +1,7 @@
 package com.vovan4ok.appliance.store.controller;
 
 import com.vovan4ok.appliance.store.config.SecurityConfig;
+import com.vovan4ok.appliance.store.metrics.StoreMetrics;
 import com.vovan4ok.appliance.store.security.JwtUtils;
 import com.vovan4ok.appliance.store.security.TokenDenylist;
 import jakarta.servlet.http.Cookie;
@@ -50,6 +51,9 @@ public class AuthControllerTest {
     @MockitoBean
     TokenDenylist tokenDenylist;
 
+    @MockitoBean
+    StoreMetrics metrics;
+
     @Test
     void login_validCredentials_setsJwtCookieWithConfiguredMaxAge() throws Exception {
         var mockAuth = new UsernamePasswordAuthenticationToken(
@@ -65,6 +69,8 @@ public class AuthControllerTest {
                 .andExpect(cookie().exists("jwt"))
                 .andExpect(cookie().httpOnly("jwt", true))
                 .andExpect(cookie().maxAge("jwt", 3600));
+
+        verify(metrics).login(StoreMetrics.Channel.WEB, true);
     }
 
     @Test
@@ -79,6 +85,8 @@ public class AuthControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login?error"))
                 .andExpect(cookie().doesNotExist("jwt"));
+
+        verify(metrics).login(StoreMetrics.Channel.WEB, false);
     }
 
     @Test
@@ -99,6 +107,7 @@ public class AuthControllerTest {
 
         verify(tokenDenylist).revoke(eq(jwtUtils.extractId(token)),
                 argThat(ttl -> ttl.toSeconds() > 3500 && ttl.toSeconds() <= 3600));
+        verify(metrics).logout(StoreMetrics.Channel.WEB);
     }
 
     @Test
@@ -107,6 +116,7 @@ public class AuthControllerTest {
                 .andExpect(redirectedUrl("/login?logout"));
 
         verify(tokenDenylist, never()).revoke(any(), any());
+        verify(metrics, never()).logout(any());
     }
 
     @Test

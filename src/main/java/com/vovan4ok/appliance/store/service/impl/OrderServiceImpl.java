@@ -4,6 +4,7 @@ import com.vovan4ok.appliance.store.aspect.Loggable;
 import com.vovan4ok.appliance.store.event.OrderApprovedEvent;
 import com.vovan4ok.appliance.store.event.OrderEmailData;
 import com.vovan4ok.appliance.store.event.OrderSubmittedEvent;
+import com.vovan4ok.appliance.store.event.OrderUnapprovedEvent;
 import com.vovan4ok.appliance.store.exception.InsufficientStockException;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.OrderRow;
@@ -113,6 +114,7 @@ public class OrderServiceImpl implements OrderService {
                     appliance.setStock(current + row.getNumber().intValue());
                     applianceRepository.save(appliance);
                 }
+                eventPublisher.publishEvent(new OrderUnapprovedEvent(order.getId()));
             }
 
             order.setApproved(null);

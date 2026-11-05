@@ -16,8 +16,8 @@ A full-stack e-commerce web application for managing and selling home appliances
 - **Frontend:** Thymeleaf, Bootstrap 5
 - **Database:** PostgreSQL (prod) / H2 (dev)
 - **Migrations:** Flyway
-- **Containerization:** Docker, Docker Compose (app, PostgreSQL, Redis, Mailpit)
-- **Monitoring:** Spring Boot Actuator health check (`/actuator/health`)
+- **Containerization:** Docker, Docker Compose (app, PostgreSQL, Redis, Mailpit, Prometheus, Grafana)
+- **Observability:** Micrometer metrics (HTTP, JVM, database pool, Redis, Spring AI + custom business metrics) scraped by Prometheus, provisioned Grafana dashboard; Actuator health check
 - **Testing:** JUnit 5, Mockito, MockMvc, Testcontainers (real Redis in Docker)
 - **Build:** Maven
 - **Code style:** Checkstyle (Google-inspired ruleset — `checkstyle.xml`)
@@ -109,7 +109,7 @@ Redis backs three features, each behind an interface with an in-memory implement
 | **AI description cache** | Spring Cache with `RedisCacheManager`, 7-day TTL (`aiDescriptions::<id>:<lang>:<hash>`), written asynchronously so caching never slows a response |
 | **AI rate limit** | Fixed one-minute window per employee: atomic `INCR` on `ai:rate:<user>:<minute>` with a short TTL — shared by all app instances |
 
-**When Redis is down the app degrades instead of failing:** the cache counts as a miss, the rate limit and the deny-list are skipped (fail-open, so an outage doesn't log everyone out), each with a warning in the log, and `/actuator/health` reports `redis: DOWN` (HTTP 503). The Redis client rejects commands while disconnected instead of queueing them, so requests don't wait for timeouts during an outage, and everything recovers automatically. Redis runs with an append-only file, so revoked tokens survive a Redis restart.
+**When Redis is down the app degrades instead of failing:** the cache counts as a miss, the rate limit and the deny-list are skipped (fail-open, so an outage doesn't log everyone out), each with a warning in the log, and `/actuator/health` (port 8081 in prod) reports `redis: DOWN` (HTTP 503). The Redis client rejects commands while disconnected instead of queueing them, so requests don't wait for timeouts during an outage, and everything recovers automatically. Redis runs with an append-only file, so revoked tokens survive a Redis restart.
 
 ### Dependency Security
 - **OWASP Dependency-Check** (`.github/workflows/security.yml`) scans every push, every pull request and, because new CVEs appear even when the code doesn't change, every Monday. It checks all runtime dependencies against the NVD and the CISA *Known Exploited Vulnerabilities* list
@@ -123,9 +123,26 @@ Redis backs three features, each behind an interface with an in-memory implement
   # report: target/dependency-check-report.html
   ```
 
+### Observability
+The app exports metrics in Prometheus format (Micrometer); `docker compose up` also starts **Prometheus** (`http://localhost:9090`) and **Grafana** (`http://localhost:3000`, login from `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`, default `admin` / `admin`), which opens the ready-made **Appliance Store** dashboard:
+
+| Dashboard section | What it shows |
+|-------------------|---------------|
+| **Overview** | App up, requests/s, 5xx error rate, p95 latency, pending orders, out-of-stock appliances |
+| **HTTP** | Requests by status, slowest endpoints (p95 per URI) |
+| **Orders** | Submitted / approved / unapproved orders per hour, approved orders and revenue in the selected range |
+| **AI descriptions** | Requests by outcome (generated / cached / fallback + reason), OpenAI latency p50/p95, cache hit ratio, rate-limited requests, OpenAI tokens used |
+| **Authentication** | Successful and failed logins (web / API), logouts |
+| **JVM and database** | Heap, CPU, HikariCP connections (active / idle / waiting) |
+
+- **Custom business metrics** (`metrics/StoreMetrics`): `store_orders_total{event}`, `store_orders_approved_amount`, `store_ai_descriptions_seconds{outcome,reason}`, `store_ai_rate_limited_total`, `store_auth_logins_total{channel,result}`, `store_auth_logouts_total{channel}`, plus the gauges `store_orders_pending` and `store_appliances_out_of_stock` (read from the database on each scrape). Order events are counted only after their transaction commits, and tags only ever take a few fixed values (never user names or ids), which keeps the number of time series small
+- Spring AI adds its own metrics (`gen_ai_client_operation_seconds`, `gen_ai_client_token_usage_total`), so OpenAI errors and token spend are visible too
+- **Metrics are never public:** in the `prod` profile `/actuator/health` and `/actuator/prometheus` are served only on the management port **8081**, which Docker Compose publishes on localhost only (Prometheus scrapes it inside the Docker network); port 8080 has no actuator endpoints. In `dev` both are on 8080
+- Dashboards, data source and scrape config live in the repo (`observability/`), so the whole setup comes up with no clicking; change the dashboard JSON and restart Grafana to update it
+
 ### General
 - Role-based access control (CLIENT / EMPLOYEE)
-- Health check at `/actuator/health` (database, Redis in prod, disk) — the only actuator endpoint exposed
+- Health check at `/actuator/health` (database, Redis in prod, disk) — with `/actuator/prometheus` the only actuator endpoints exposed (management port 8081 in prod)
 - Custom password validation (min 8 chars, uppercase, lowercase, special character)
 - Phone number validation — 7–15 digits, optional `+` prefix, spaces/dashes/parentheses allowed
 - Pagination and sorting on all list views
@@ -185,7 +202,8 @@ docker compose up --build
 
 App starts at `http://localhost:8080` backed by PostgreSQL with Flyway-managed schema and Redis.
 Avatar uploads are stored in the `app_uploads` Docker volume; Redis data (append-only file) in `redis_data`.
-Health check: `http://localhost:8080/actuator/health`.
+Health check: `http://localhost:8081/actuator/health` (management port, this machine only).
+Metrics: Prometheus at `http://localhost:9090`, Grafana dashboard at `http://localhost:3000`.
 A [Mailpit](https://mailpit.axllent.org/) container catches all outgoing email — open its inbox at `http://localhost:8025`.
 
 ## Configuration Profiles
@@ -222,7 +240,8 @@ src/
 │   ├── security/        # JWT filter and utilities, token deny-list (Redis / in-memory)
 │   ├── service/         # Business logic interfaces and implementations (incl. AI description service)
 │   ├── event/           # Application events (registration, orders, password)
-│   ├── listener/        # Email notification listener
+│   ├── listener/        # Email notification + order metrics listeners
+│   ├── metrics/         # Micrometer business metrics (StoreMetrics) and gauges
 │   ├── aspect/          # AOP logging
 │   └── validation/      # Custom password constraint
 ├── main/resources/
@@ -253,5 +272,7 @@ src/
 | `SPRING_AI_OPENAI_CHAT_MODEL` | Optional OpenAI model override (default: `gpt-5-mini`; `reasoning-effort=minimal` assumes a GPT-5-family model) |
 | `REDIS_HOST` | Redis host (default: `localhost`; Docker Compose sets `redis`) |
 | `REDIS_PORT` | Redis port (default: `6379`) |
+| `MANAGEMENT_PORT` | Port for `/actuator/health` and `/actuator/prometheus` (default: `8081`) |
+| `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | Grafana login under Docker Compose (default: `admin` / `admin`) |
 
 > Under Docker Compose the mail settings default to the bundled Mailpit container — no configuration needed.

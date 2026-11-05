@@ -5,7 +5,9 @@ import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.Category;
 import com.vovan4ok.appliance.store.model.PowerType;
 import com.vovan4ok.appliance.store.model.dto.api.AiDescriptionResponse;
+import com.vovan4ok.appliance.store.metrics.StoreMetrics;
 import com.vovan4ok.appliance.store.service.impl.AiDescriptionServiceImpl;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
@@ -97,7 +99,7 @@ class RedisAiDescriptionCacheTest {
         cacheManager.afterPropertiesSet();
 
         service = new AiDescriptionServiceImpl(applianceService, messageSource, cacheManager,
-                chatModel, builderProvider);
+                chatModel, builderProvider, new StoreMetrics(new SimpleMeterRegistry()));
     }
 
     @Test

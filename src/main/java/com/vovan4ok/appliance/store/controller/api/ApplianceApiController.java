@@ -1,5 +1,7 @@
 package com.vovan4ok.appliance.store.controller.api;
 
+import com.vovan4ok.appliance.store.exception.RateLimitExceededException;
+import com.vovan4ok.appliance.store.metrics.StoreMetrics;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.Category;
 import com.vovan4ok.appliance.store.model.PowerType;
@@ -45,6 +47,7 @@ public class ApplianceApiController {
     private final ManufacturerService manufacturerService;
     private final AiDescriptionService aiDescriptionService;
     private final AiRateLimiter aiRateLimiter;
+    private final StoreMetrics metrics;
 
     @GetMapping
     @Operation(summary = "List appliances (paginated, filterable)")
@@ -108,7 +111,12 @@ public class ApplianceApiController {
     @PostMapping("/{id}/ai-description")
     @Operation(summary = "Generate an AI marketing description suggestion (EMPLOYEE only, ?lang=en|uk); not saved")
     public AiDescriptionResponse aiDescription(@PathVariable Long id, Principal principal) {
-        aiRateLimiter.acquire(principal.getName());
+        try {
+            aiRateLimiter.acquire(principal.getName());
+        } catch (RateLimitExceededException e) {
+            metrics.aiRateLimited();
+            throw e;
+        }
         return aiDescriptionService.generate(id, LocaleContextHolder.getLocale());
     }
 

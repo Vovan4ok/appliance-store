@@ -1,0 +1,292 @@
+{
+  "uid": "appliance-store",
+  "title": "Appliance Store",
+  "description": "HTTP traffic, business metrics, AI descriptions, authentication and JVM/database health of the appliance store",
+  "tags": ["appliance-store", "spring-boot"],
+  "timezone": "browser",
+  "editable": false,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "type": "row", "title": "Overview", "collapsed": false, "panels": [],
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "stat", "title": "App up",
+      "description": "1 = Prometheus can scrape the app's management port",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "targets": [ { "refId": "A", "expr": "min(up{job=\"appliance-store\"})" } ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [ { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } } ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat", "title": "Requests / s",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "targets": [ { "refId": "A", "expr": "sum(rate(http_server_requests_seconds_count{application=\"appliance-store\"}[5m]))" } ],
+      "fieldConfig": { "defaults": { "unit": "reqps", "decimals": 2 } },
+      "options": { "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat", "title": "Server errors (5xx)",
+      "description": "Share of requests that ended with a 5xx status, last 5 minutes",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "targets": [ { "refId": "A", "expr": "(sum(rate(http_server_requests_seconds_count{application=\"appliance-store\", status=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(http_server_requests_seconds_count{application=\"appliance-store\"}[5m])), 1e-9)" } ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit", "decimals": 1,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 0.01 }, { "color": "red", "value": 0.05 } ] }
+        }
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat", "title": "Latency p95",
+      "description": "95% of requests were faster than this, last 5 minutes",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "targets": [ { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"appliance-store\"}[5m])))" } ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s", "decimals": 1,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 0.5 }, { "color": "red", "value": 1 } ] }
+        }
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat", "title": "Pending orders",
+      "description": "Submitted orders waiting for an employee's approval",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "targets": [ { "refId": "A", "expr": "sum(store_orders_pending{application=\"appliance-store\"})" } ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 10 } ] }
+        }
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat", "title": "Out of stock",
+      "description": "Appliances with no stock left",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "targets": [ { "refId": "A", "expr": "sum(store_appliances_out_of_stock{application=\"appliance-store\"})" } ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 } ] }
+        }
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+
+    {
+      "type": "row", "title": "HTTP", "collapsed": false, "panels": [],
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }
+    },
+    {
+      "type": "timeseries", "title": "Requests / s by status",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [ { "refId": "A", "expr": "sum by (status) (rate(http_server_requests_seconds_count{application=\"appliance-store\"}[5m]))", "legendFormat": "{{status}}" } ],
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 10, "stacking": { "mode": "normal" } } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "type": "timeseries", "title": "Slowest endpoints (p95)",
+      "description": "Top 5 URI patterns by 95th percentile latency",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [ { "refId": "A", "expr": "topk(5, histogram_quantile(0.95, sum by (le, method, uri) (rate(http_server_requests_seconds_bucket{application=\"appliance-store\"}[5m]))))", "legendFormat": "{{method}} {{uri}}" } ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 0 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+
+    {
+      "type": "row", "title": "Orders", "collapsed": false, "panels": [],
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }
+    },
+    {
+      "type": "timeseries", "title": "Order events per hour",
+      "description": "submitted = client sent the cart, approved = employee approved (stock taken), unapproved = approval taken back",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 10, "x": 0, "y": 15 },
+      "targets": [ { "refId": "A", "expr": "sum by (event) (increase(store_orders_total{application=\"appliance-store\"}[1h]))", "legendFormat": "{{event}}" } ],
+      "fieldConfig": { "defaults": { "decimals": 0, "custom": { "drawStyle": "bars", "fillOpacity": 60 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "type": "stat", "title": "Approved orders",
+      "description": "Orders approved in the selected time range",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 4, "x": 10, "y": 15 },
+      "targets": [ { "refId": "A", "expr": "sum(increase(store_orders_total{application=\"appliance-store\", event=\"approved\"}[$__range])) or vector(0)" } ],
+      "fieldConfig": { "defaults": { "decimals": 0 } },
+      "options": { "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat", "title": "Approved revenue",
+      "description": "Total amount of orders approved in the selected time range",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 4, "x": 10, "y": 19 },
+      "targets": [ { "refId": "A", "expr": "sum(increase(store_orders_approved_amount_sum{application=\"appliance-store\"}[$__range])) or vector(0)" } ],
+      "fieldConfig": { "defaults": { "decimals": 2 } },
+      "options": { "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "timeseries", "title": "Pending orders and out-of-stock appliances",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 10, "x": 14, "y": 15 },
+      "targets": [
+        { "refId": "A", "expr": "sum(store_orders_pending{application=\"appliance-store\"})", "legendFormat": "pending orders" },
+        { "refId": "B", "expr": "sum(store_appliances_out_of_stock{application=\"appliance-store\"})", "legendFormat": "out of stock" }
+      ],
+      "fieldConfig": { "defaults": { "decimals": 0, "custom": { "drawStyle": "line", "lineInterpolation": "stepAfter", "fillOpacity": 10 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+
+    {
+      "type": "row", "title": "AI descriptions", "collapsed": false, "panels": [],
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 }
+    },
+    {
+      "type": "timeseries", "title": "AI requests per minute by outcome",
+      "description": "generated = OpenAI called, cached = served from the cache, fallback = existing description returned (reason in the legend)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+      "targets": [ { "refId": "A", "expr": "sum by (outcome, reason) (rate(store_ai_descriptions_seconds_count{application=\"appliance-store\"}[5m])) * 60", "legendFormat": "{{outcome}} {{reason}}" } ],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 2, "custom": { "drawStyle": "line", "fillOpacity": 10, "stacking": { "mode": "normal" } } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "type": "timeseries", "title": "OpenAI latency (p50 / p95)",
+      "description": "Time of requests that called the model (cache hits and fallbacks excluded)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.50, sum by (le) (rate(store_ai_descriptions_seconds_bucket{application=\"appliance-store\", outcome=\"generated\"}[5m])))", "legendFormat": "p50" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum by (le) (rate(store_ai_descriptions_seconds_bucket{application=\"appliance-store\", outcome=\"generated\"}[5m])))", "legendFormat": "p95" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 0, "spanNulls": true } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "type": "stat", "title": "AI cache hit ratio",
+      "description": "Share of AI texts served from the cache instead of calling OpenAI, selected time range",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 24 },
+      "targets": [ { "refId": "A", "expr": "sum(increase(store_ai_descriptions_seconds_count{application=\"appliance-store\", outcome=\"cached\"}[$__range])) / sum(increase(store_ai_descriptions_seconds_count{application=\"appliance-store\", outcome=~\"cached|generated\"}[$__range]))" } ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 0, "noValue": "no data" } },
+      "options": { "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat", "title": "Rate-limited AI requests",
+      "description": "Requests rejected with 429 by the per-employee limit, selected time range",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 24 },
+      "targets": [ { "refId": "A", "expr": "sum(increase(store_ai_rate_limited_total{application=\"appliance-store\"}[$__range])) or vector(0)" } ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 } ] }
+        }
+      },
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat", "title": "OpenAI tokens",
+      "description": "Tokens billed by OpenAI in the selected time range (input + output), from Spring AI's own metrics",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 28 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (gen_ai_token_type) (increase(gen_ai_client_token_usage_total{application=\"appliance-store\", gen_ai_token_type=~\"input|output\"}[$__range]))", "legendFormat": "{{gen_ai_token_type}}" }
+      ],
+      "fieldConfig": { "defaults": { "decimals": 0, "noValue": "no data" } },
+      "options": { "graphMode": "none", "textMode": "value_and_name", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+
+    {
+      "type": "row", "title": "Authentication", "collapsed": false, "panels": [],
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 }
+    },
+    {
+      "type": "timeseries", "title": "Logins per minute",
+      "description": "A spike of failures can mean someone is guessing passwords",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 33 },
+      "targets": [ { "refId": "A", "expr": "sum by (result, channel) (rate(store_auth_logins_total{application=\"appliance-store\"}[5m])) * 60", "legendFormat": "{{result}} ({{channel}})" } ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "decimals": 2, "custom": { "drawStyle": "line", "fillOpacity": 10 } },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": "failure.*" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] },
+          { "matcher": { "id": "byRegexp", "options": "success.*" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } } ] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "type": "timeseries", "title": "Logouts per minute (tokens revoked)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 33 },
+      "targets": [ { "refId": "A", "expr": "sum by (channel) (rate(store_auth_logouts_total{application=\"appliance-store\"}[5m])) * 60", "legendFormat": "{{channel}}" } ],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 2, "custom": { "drawStyle": "line", "fillOpacity": 10 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+
+    {
+      "type": "row", "title": "JVM and database", "collapsed": false, "panels": [],
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 41 }
+    },
+    {
+      "type": "timeseries", "title": "Heap memory",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 42 },
+      "targets": [
+        { "refId": "A", "expr": "sum(jvm_memory_used_bytes{application=\"appliance-store\", area=\"heap\"})", "legendFormat": "used" },
+        { "refId": "B", "expr": "sum(jvm_memory_max_bytes{application=\"appliance-store\", area=\"heap\"})", "legendFormat": "max" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "drawStyle": "line", "fillOpacity": 10 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "type": "timeseries", "title": "CPU usage",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 42 },
+      "targets": [
+        { "refId": "A", "expr": "process_cpu_usage{application=\"appliance-store\"}", "legendFormat": "app process" },
+        { "refId": "B", "expr": "system_cpu_usage{application=\"appliance-store\"}", "legendFormat": "container" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "custom": { "drawStyle": "line", "fillOpacity": 10 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "type": "timeseries", "title": "Database connections (HikariCP)",
+      "description": "pending > 0 means requests are waiting for a free connection",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 42 },
+      "targets": [
+        { "refId": "A", "expr": "sum(hikaricp_connections_active{application=\"appliance-store\"})", "legendFormat": "active" },
+        { "refId": "B", "expr": "sum(hikaricp_connections_idle{application=\"appliance-store\"})", "legendFormat": "idle" },
+        { "refId": "C", "expr": "sum(hikaricp_connections_pending{application=\"appliance-store\"})", "legendFormat": "pending" }
+      ],
+      "fieldConfig": { "defaults": { "decimals": 0, "custom": { "drawStyle": "line", "fillOpacity": 10 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    }
+  ]
+}

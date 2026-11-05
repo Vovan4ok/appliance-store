@@ -11,4 +11,7 @@ public interface OrdersRepository extends JpaRepository<Orders, Long> {
     Optional<Orders> findFirstByClient_EmailAndApprovedFalseOrderByIdDesc(String email);
     Page<Orders> findByClient_Email(String email, Pageable pageable);
     Optional<Orders> findByOrderRowSet_Id(Long rowId);
+
+    // Submitted orders waiting for approval (approved: false = cart, null = pending, true = approved)
+    long countByApprovedIsNull();
 }

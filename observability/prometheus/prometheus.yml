@@ -1,0 +1,11 @@
+# Prometheus pulls ("scrapes") metrics from the app every 15 seconds and keeps them as time series.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: appliance-store
+    metrics_path: /actuator/prometheus
+    static_configs:
+      # Management port of the app container, reachable only inside the Docker network
+      - targets: ["app:8081"]
