@@ -7,6 +7,7 @@ import com.vovan4ok.appliance.store.security.TokenDenylist;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -27,6 +28,24 @@ public class AuthController {
     private final TokenDenylist tokenDenylist;
     private final StoreMetrics metrics;
 
+    // true behind HTTPS (Cloud Run): the browser then never sends the token over plain HTTP
+    @Value("${app.security.cookie-secure:false}")
+    private boolean cookieSecure;
+
+    /**
+     * HttpOnly: no JavaScript access. SameSite=Lax: other sites can't make the browser send the token with their
+     * POST requests, which matters because CSRF tokens are off (stateless JWT cookie).
+     */
+    private Cookie jwtCookie(String value, int maxAgeSeconds) {
+        Cookie cookie = new Cookie("jwt", value);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(cookieSecure);
+        cookie.setPath("/");
+        cookie.setMaxAge(maxAgeSeconds);
+        cookie.setAttribute("SameSite", "Lax");
+        return cookie;
+    }
+
     @PostMapping("/login")
     public String login(@RequestParam String username,
                         @RequestParam String password,
@@ -42,11 +61,7 @@ public class AuthController {
 
             String token = jwtUtils.generateToken(username, role);
 
-            Cookie cookie = new Cookie("jwt", token);
-            cookie.setHttpOnly(true);
-            cookie.setPath("/");
-            cookie.setMaxAge((int) (jwtUtils.getExpirationMs() / 1000));
-            response.addCookie(cookie);
+            response.addCookie(jwtCookie(token, (int) (jwtUtils.getExpirationMs() / 1000)));
             metrics.login(Channel.WEB, true);
 
             return "redirect:/";
@@ -64,11 +79,7 @@ public class AuthController {
             tokenDenylist.revoke(jwtUtils.extractId(token), jwtUtils.remainingLifetime(token));
             metrics.logout(Channel.WEB);
         }
-        Cookie cookie = new Cookie("jwt", "");
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        response.addCookie(jwtCookie("", 0));
         return "redirect:/login?logout";
     }
 }

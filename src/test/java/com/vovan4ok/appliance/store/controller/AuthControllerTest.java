@@ -68,7 +68,9 @@ public class AuthControllerTest {
                 .andExpect(redirectedUrl("/"))
                 .andExpect(cookie().exists("jwt"))
                 .andExpect(cookie().httpOnly("jwt", true))
-                .andExpect(cookie().maxAge("jwt", 3600));
+                .andExpect(cookie().maxAge("jwt", 3600))
+                .andExpect(cookie().attribute("jwt", "SameSite", "Lax"))
+                .andExpect(cookie().secure("jwt", false));
 
         verify(metrics).login(StoreMetrics.Channel.WEB, true);
     }

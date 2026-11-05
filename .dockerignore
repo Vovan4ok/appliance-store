@@ -1,0 +1,6 @@
+# Only what the build needs goes into the Docker build context
+*
+!.mvn/
+!mvnw
+!pom.xml
+!src/
