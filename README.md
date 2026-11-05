@@ -1,6 +1,7 @@
 # Appliance Store
 
 [![CI](https://github.com/Vovan4ok/appliance-store/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Vovan4ok/appliance-store/actions/workflows/ci.yml)
+[![Security](https://github.com/Vovan4ok/appliance-store/actions/workflows/security.yml/badge.svg?branch=master)](https://github.com/Vovan4ok/appliance-store/actions/workflows/security.yml)
 
 A full-stack e-commerce web application for managing and selling home appliances, built with Spring Boot 4.1 and Java 17.
 
@@ -21,6 +22,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - **Build:** Maven
 - **Code style:** Checkstyle (Google-inspired ruleset — `checkstyle.xml`)
 - **CI:** GitHub Actions
+- **Dependency security:** OWASP Dependency-Check in CI (fails on CVSS ≥ 7, findings in GitHub's Security tab), Dependabot updates
 
 ## Features
 
@@ -108,6 +110,18 @@ Redis backs three features, each behind an interface with an in-memory implement
 | **AI rate limit** | Fixed one-minute window per employee: atomic `INCR` on `ai:rate:<user>:<minute>` with a short TTL — shared by all app instances |
 
 **When Redis is down the app degrades instead of failing:** the cache counts as a miss, the rate limit and the deny-list are skipped (fail-open, so an outage doesn't log everyone out), each with a warning in the log, and `/actuator/health` reports `redis: DOWN` (HTTP 503). The Redis client rejects commands while disconnected instead of queueing them, so requests don't wait for timeouts during an outage, and everything recovers automatically. Redis runs with an append-only file, so revoked tokens survive a Redis restart.
+
+### Dependency Security
+- **OWASP Dependency-Check** (`.github/workflows/security.yml`) scans every push, every pull request and, because new CVEs appear even when the code doesn't change, every Monday. It checks all runtime dependencies against the NVD and the CISA *Known Exploited Vulnerabilities* list
+- The build **fails on any vulnerability with CVSS 7.0 or higher**; findings show up in the repository's **Security → Code scanning** tab (SARIF), and the HTML report is attached to each run
+- Reviewed false positives go into `dependency-check-suppressions.xml` with a reason and an expiry date, so they get looked at again
+- **Dependabot** (`.github/dependabot.yml`) opens weekly PRs for Maven dependencies, GitHub Actions and Docker images (Dockerfile and docker-compose) — minor/patch updates grouped, major versions one by one — and each PR runs the full CI before merging
+- Run the scan locally (needs a free [NVD API key](https://nvd.nist.gov/developers/request-an-api-key)):
+
+  ```bash
+  ./mvnw dependency-check:check -DnvdApiKey=<your key>
+  # report: target/dependency-check-report.html
+  ```
 
 ### General
 - Role-based access control (CLIENT / EMPLOYEE)

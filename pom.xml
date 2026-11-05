@@ -194,6 +194,34 @@
 					</execution>
 				</executions>
 			</plugin>
+			<!-- OWASP Dependency-Check: scans dependencies for known CVEs (NVD + CISA known-exploited list).
+			     Not bound to a phase, so `verify` stays fast; CI runs it as its own job:
+			     ./mvnw dependency-check:check -DnvdApiKey=<key>   (without a key the NVD download is much slower) -->
+			<plugin>
+				<groupId>org.owasp</groupId>
+				<artifactId>dependency-check-maven</artifactId>
+				<version>13.0.0</version>
+				<configuration>
+					<!-- Fail on high and critical vulnerabilities (CVSS 7.0+) -->
+					<failBuildOnCVSS>7</failBuildOnCVSS>
+					<formats>
+						<format>HTML</format>
+						<format>SARIF</format>
+						<format>JSON</format>
+					</formats>
+					<suppressionFiles>
+						<suppressionFile>${project.basedir}/dependency-check-suppressions.xml</suppressionFile>
+					</suppressionFiles>
+					<!-- Fixed location so CI can cache the vulnerability database between runs -->
+					<dataDirectory>${user.home}/.dependency-check/data</dataDirectory>
+					<!-- Java-only project: OSS Index needs an account, the others scan JS/.NET -->
+					<ossIndexAnalyzerEnabled>false</ossIndexAnalyzerEnabled>
+					<retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
+					<nodeAnalyzerEnabled>false</nodeAnalyzerEnabled>
+					<nodeAuditAnalyzerEnabled>false</nodeAuditAnalyzerEnabled>
+					<assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 </project>

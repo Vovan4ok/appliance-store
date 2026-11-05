@@ -1,0 +1,58 @@
+# Dependabot: weekly pull requests for outdated dependencies, plus security alerts.
+# Every PR runs the full CI (tests, checkstyle, dependency scan) before anyone merges it.
+version: 2
+updates:
+  # Maven dependencies and plugins (pom.xml)
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps"
+    groups:
+      # Spring Boot, Spring AI, Spring Data... move together; one PR for their minor/patch updates
+      spring:
+        patterns:
+          - "org.springframework*"
+        update-types:
+          - minor
+          - patch
+      # Everything else that is not a major version jump, in one PR
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    # Major versions still come, but each as its own PR, so breaking changes are reviewed one at a time
+
+  # GitHub Actions versions used in .github/workflows
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # Base images in the Dockerfile
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "docker"
+
+  # Images in docker-compose.yml (PostgreSQL, Redis, Mailpit)
+  - package-ecosystem: docker-compose
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "docker"

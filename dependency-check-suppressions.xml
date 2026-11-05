@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  OWASP Dependency-Check suppressions.
+  Only suppress a finding after checking it is a false positive or does not apply to this app,
+  and always write down why, e.g.:
+
+  <suppress until="2027-01-01Z">
+      <notes>Why this CVE does not affect us (link to the analysis or issue)</notes>
+      <packageUrl regex="true">^pkg:maven/group/artifact@.*$</packageUrl>
+      <cve>CVE-0000-00000</cve>
+  </suppress>
+
+  The `until` date makes the suppression expire, so it gets reviewed again.
+-->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+</suppressions>
