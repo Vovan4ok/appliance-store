@@ -84,3 +84,19 @@ variable "secrets_version" {
   type        = number
   default     = 1
 }
+
+variable "github_repository_id" {
+  description = "Numeric id of the GitHub repository allowed to deploy (api.github.com/repos/<owner>/<repo> → id)"
+  type        = string
+}
+
+variable "github_owner_id" {
+  description = "Numeric id of the repository owner (→ owner.id)"
+  type        = string
+}
+
+variable "deploy_branches" {
+  description = "Branches whose pushes may deploy"
+  type        = list(string)
+  default     = ["master"]
+}

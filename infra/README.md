@@ -57,3 +57,23 @@ terraform output web_url
   startup log: `sudo journalctl -t store-startup`; containers: `sudo docker compose -f /opt/store/docker-compose.yml ps`
 - **Re-run the VM setup** (e.g. after changing a secret): `sudo google_metadata_script_runner startup` on the VM
 - **Stop paying**: `terraform destroy` removes everything (with `deletion_protection = false`, the default)
+
+## Continuous deployment
+
+`.github/workflows/deploy.yml` runs on every push to `master` (and `gcp-deployment` while it exists):
+
+1. **Test**: `./mvnw verify` (unit + integration tests, checkstyle); nothing is deployed if it fails
+2. **Build** one image, tagged with the commit SHA, pushed to Artifact Registry (layer cache in GitHub Actions)
+3. **Web**: `gcloud run services update --image …`. Cloud Run starts the new revision, waits for its startup
+   probe and only then moves traffic; a revision that doesn't start never receives traffic
+4. **Worker**: sets the VM's `app-image` metadata. The VM's `store-image-watcher` service long-polls the metadata
+   server, pulls the image and recreates only the worker container (Redis and Temporal keep running).
+   CI needs no SSH access to the VM. Log: `sudo journalctl -u store-image-watcher`
+5. **Smoke test**: `/` and `/login` answer 200, `/actuator/health` stays private (404)
+
+GitHub authenticates with **Workload Identity Federation**: no key is stored anywhere. Google only accepts tokens
+from this repository (checked by numeric repository and owner id, so a renamed or re-created repo gets nothing)
+for pushes to the branches in `deploy_branches`. The `store-deployer` service account can only push to this
+registry, deploy this Cloud Run service and change this VM's metadata.
+
+Infrastructure changes stay manual on purpose: `terraform plan`, review, `terraform apply`.
