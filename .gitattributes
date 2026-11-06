@@ -3,3 +3,9 @@ mvnw text eol=lf
 *.sh text eol=lf
 # Windows scripts keep CRLF
 *.cmd text eol=crlf
+# Terraform files and templates keep LF everywhere: templates are rendered byte for byte into the VM's startup
+# script and compose file (a CR breaks bash), and CRLF would show up as a change to every line in terraform plan
+*.tf text eol=lf
+*.tfvars text eol=lf
+*.tftpl text eol=lf
+*.hcl text eol=lf
