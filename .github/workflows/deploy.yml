@@ -81,11 +81,12 @@ jobs:
       # if the new version doesn't come up, the old one keeps serving
       - name: Deploy the web role (Cloud Run)
         run: |
+          # Service-wide flags first: everything after --container belongs to that container
           gcloud run services update "$SERVICE" \
             --region "$REGION" \
+            --quiet \
             --container app \
-            --image "${IMAGE}:${GITHUB_SHA}" \
-            --quiet
+            --image "${IMAGE}:${GITHUB_SHA}"
 
       # The VM's store-image-watcher service sees the new value and rolls only the worker container
       - name: Deploy the worker role (VM)
