@@ -155,6 +155,8 @@ resource "google_cloud_run_v2_service" "web" {
           memory = "256Mi"
         }
         cpu_idle = true
+        # gcloud deployments set the boost on every container; declared here so Terraform and CI agree
+        startup_cpu_boost = true
       }
 
       volume_mounts {
