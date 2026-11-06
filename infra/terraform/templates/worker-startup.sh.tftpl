@@ -1,0 +1,146 @@
+#!/bin/bash
+# Runs on every boot of the worker VM (and on demand: sudo google_metadata_script_runner startup).
+# Idempotent: installs Docker once, then (re)writes the config from Secret Manager and brings the stack up.
+set -euo pipefail
+exec > >(logger -t store-startup) 2>&1
+
+PROJECT="${project_id}"
+STORE_DIR=/opt/store
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "Installing Docker"
+  apt-get update
+  apt-get install -y ca-certificates curl
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+  . /etc/os-release
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $VERSION_CODENAME stable" \
+    > /etc/apt/sources.list.d/docker.list
+  apt-get update
+  apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+fi
+
+# ── Google Ops Agent: journal (startup script, watcher, all containers) → Cloud Logging,
+#    worker's Prometheus metrics → Managed Prometheus ──
+if ! systemctl list-unit-files google-cloud-ops-agent.service >/dev/null 2>&1; then
+  echo "Installing the Ops Agent"
+  curl -fsSL https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh -o /tmp/add-ops-agent-repo.sh
+  bash /tmp/add-ops-agent-repo.sh --also-install
+fi
+cat > /etc/google-cloud-ops-agent/config.yaml.new <<'OPS'
+logging:
+  receivers:
+    journal:
+      type: systemd_journald
+  service:
+    pipelines:
+      journal:
+        receivers: [journal]
+metrics:
+  receivers:
+    worker:
+      type: prometheus
+      config:
+        scrape_configs:
+          - job_name: appliance-store-worker
+            scrape_interval: 60s
+            metrics_path: /actuator/prometheus
+            static_configs:
+              - targets: ["localhost:8081"]
+  service:
+    pipelines:
+      worker:
+        receivers: [worker]
+OPS
+if ! cmp -s /etc/google-cloud-ops-agent/config.yaml.new /etc/google-cloud-ops-agent/config.yaml; then
+  mv /etc/google-cloud-ops-agent/config.yaml.new /etc/google-cloud-ops-agent/config.yaml
+  systemctl restart google-cloud-ops-agent
+else
+  rm /etc/google-cloud-ops-agent/config.yaml.new
+fi
+
+metadata() {
+  curl -fsS -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$1"
+}
+secret() {
+  gcloud secrets versions access latest --secret="$1" --project="$PROJECT"
+}
+
+mkdir -p "$STORE_DIR"
+metadata worker-compose > "$STORE_DIR/docker-compose.yml"
+
+# Secrets only in a root-only file, never in metadata or logs
+umask 077
+{
+  echo "APP_IMAGE=$(metadata app-image)"
+  echo "DB_PASSWORD=$(secret db-password)"
+  echo "REDIS_PASSWORD=$(secret redis-password)"
+  echo "JWT_SECRET=$(secret jwt-secret)"
+  echo "MAIL_USERNAME=$(secret mail-username)"
+  echo "MAIL_PASSWORD=$(secret mail-password)"
+  echo "MAIL_FROM=$(secret mail-from)"
+} > "$STORE_DIR/.env.tmp"
+mv "$STORE_DIR/.env.tmp" "$STORE_DIR/.env"
+
+# Pull the app image from Artifact Registry with the VM's service account
+gcloud auth configure-docker "${registry_host}" --quiet
+
+cd "$STORE_DIR"
+# Redis and Temporal first: they must run even before the first app image exists
+docker compose up -d redis temporal
+if docker compose pull worker; then
+  docker compose up -d --remove-orphans worker
+else
+  echo "App image not available yet ($(metadata app-image)); worker not started"
+fi
+docker image prune -f
+
+# ── Image watcher: deployments only change the VM's app-image metadata; this service notices (long-poll on the
+# metadata server) and rolls just the worker container. CI needs no SSH access, Redis and Temporal keep running.
+cat > /usr/local/bin/store-image-watcher <<'WATCHER'
+#!/bin/bash
+URL="http://metadata.google.internal/computeMetadata/v1/instance/attributes/app-image"
+etag=NONE
+while true; do
+  # Returns at once the first time, then only when the value changes (or after the timeout)
+  if ! image=$(curl -fsS -D /run/store-image-watcher.headers -H "Metadata-Flavor: Google" \
+      "$URL?wait_for_change=true&timeout_sec=600&last_etag=$etag"); then
+    sleep 10
+    continue
+  fi
+  new_etag=$(awk 'tolower($1) == "etag:" { print $2 }' /run/store-image-watcher.headers | tr -d '\r')
+  if [ "$etag" != NONE ] && [ "$new_etag" != "$etag" ]; then
+    echo "app-image changed to $image: rolling the worker"
+    sed -i "s|^APP_IMAGE=.*|APP_IMAGE=$image|" /opt/store/.env
+    cd /opt/store \
+      && docker compose pull worker \
+      && docker compose up -d worker \
+      && docker image prune -f \
+      && echo "worker now runs $image" \
+      || echo "worker roll-out to $image FAILED (previous container kept if the pull failed)"
+  fi
+  etag=$new_etag
+done
+WATCHER
+chmod 755 /usr/local/bin/store-image-watcher
+
+cat > /etc/systemd/system/store-image-watcher.service <<'UNIT'
+[Unit]
+Description=Roll the worker container when the app-image metadata changes
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/store-image-watcher
+Restart=always
+RestartSec=10
+SyslogIdentifier=store-image-watcher
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable store-image-watcher
+systemctl restart store-image-watcher
+
+echo "Startup finished"

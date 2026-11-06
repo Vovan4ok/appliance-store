@@ -224,6 +224,7 @@ docker compose up --build
 > Compose refuses to start without `JWT_SECRET`, and the app itself fails fast if the secret is shorter than 32 bytes.
 
 App starts at `http://localhost:8080` backed by PostgreSQL with Flyway-managed schema and Redis.
+The image runs as a non-root user (uid 10001) with the heap sized from the container's memory limit.
 Avatar uploads are stored in the `app_uploads` Docker volume; Redis data (append-only file) in `redis_data`.
 Health check: `http://localhost:8081/actuator/health` (management port, this machine only).
 Metrics: Prometheus at `http://localhost:9090`, Grafana dashboard at `http://localhost:3000`.
@@ -301,7 +302,14 @@ src/
 | `TEMPORAL_NAMESPACE` | Temporal namespace (default: `default`) |
 | `ORDER_APPROVAL_REMINDER_AFTER` | Time until employees are reminded about a pending order (default: `24h`) |
 | `ORDER_APPROVAL_EXPIRE_AFTER` | Time until a pending order goes back to the cart (default: `72h`) |
+| `MAIL_REDIRECT_TO` | Send every email to this one inbox, original recipient in the subject — needed with real SMTP and the sample data, whose accounts use real-looking addresses of strangers (Docker Compose defaults it to `MAIL_FROM`; empty = real recipients) |
+| `TEMPORAL_WORKER_ENABLED` | `false` = this instance only starts/approves workflows (web role on Cloud Run); another instance runs the worker (default: `true`) |
+| `COOKIE_SECURE` | `true` behind HTTPS: the JWT cookie is only sent over HTTPS (default: `false`) |
+| `FORWARD_HEADERS_STRATEGY` | `framework` behind a proxy such as Cloud Run, so generated URLs use https (default: `none`) |
+| `DB_POOL_SIZE` | Max database connections per instance (default: `10`) |
+| `REDIS_PASSWORD` | Redis password (default: none) |
 | `MANAGEMENT_PORT` | Port for `/actuator/health` and `/actuator/prometheus` (default: `8081`) |
 | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | Grafana login under Docker Compose (default: `admin` / `admin`) |
 
 > Under Docker Compose the mail settings default to the bundled Mailpit container — no configuration needed.
+> To send real email, set the `MAIL_*` values for [Brevo](https://www.brevo.com) SMTP in `.env` (see `.env.example`): host `smtp-relay.brevo.com`, port `587`, your SMTP login and key, STARTTLS on, and a `MAIL_FROM` address verified in Brevo. Every email then goes to that `MAIL_FROM` inbox (`MAIL_REDIRECT_TO`), so the sample accounts' addresses never receive anything.

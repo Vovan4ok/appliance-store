@@ -49,10 +49,17 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-apppassword}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (at least 32 characters)}
       UPLOAD_DIR: /app/uploads
-      MAIL_HOST: mailpit
-      MAIL_PORT: 1025
-      MAIL_SMTP_AUTH: "false"
-      MAIL_SMTP_STARTTLS: "false"
+      # Mailpit by default; set the MAIL_* values in .env to send real email through Brevo instead
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@appliance-store.com}
+      # With real SMTP: deliver everything to one inbox (sample accounts use strangers' real-looking addresses).
+      # Defaults to your MAIL_FROM sender once you set one in .env; opt out explicitly with an empty MAIL_REDIRECT_TO=
+      MAIL_REDIRECT_TO: ${MAIL_REDIRECT_TO-${MAIL_FROM:-}}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
       AI_CHAT_PROVIDER: ${AI_CHAT_PROVIDER:-none}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       REDIS_HOST: redis

@@ -1,0 +1,118 @@
+name: Deploy
+
+# Every push to a deploy branch: test → build one image → roll Cloud Run (web) and the worker VM to it.
+# Authentication: Workload Identity Federation (GitHub's OIDC token → short-lived Google credentials); no keys
+# are stored in GitHub. Infrastructure itself is changed with Terraform (infra/terraform), not here.
+on:
+  push:
+    branches: [ master ]
+    paths-ignore: [ '**.md', 'infra/**', 'observability/**', '.github/dependabot.yml' ]
+  workflow_dispatch:
+
+# One deployment at a time; a newer push waits instead of cancelling a roll-out half way
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_ID: appliance-store-513822
+  REGION: europe-central2
+  ZONE: europe-central2-a
+  SERVICE: appliance-store
+  WORKER_VM: store-worker
+  IMAGE: europe-central2-docker.pkg.dev/appliance-store-513822/store/app
+  WORKLOAD_IDENTITY_PROVIDER: projects/265588390327/locations/global/workloadIdentityPools/github/providers/appliance-store
+  DEPLOYER: store-deployer@appliance-store-513822.iam.gserviceaccount.com
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+      - run: ./mvnw -B -ntp verify
+
+  deploy:
+    name: Build and deploy
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.smoke.outputs.url }}
+    permissions:
+      contents: read
+      id-token: write # lets the job request the GitHub OIDC token for Workload Identity Federation
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.DEPLOYER }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Log Docker in to Artifact Registry
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Tagged with the commit: every running version can be traced back to its source
+      - name: Build and push the image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Cloud Run starts the new revision, waits for its startup probe and only then moves traffic to it;
+      # if the new version doesn't come up, the old one keeps serving
+      - name: Deploy the web role (Cloud Run)
+        run: |
+          # Service-wide flags first: everything after --container belongs to that container
+          gcloud run services update "$SERVICE" \
+            --region "$REGION" \
+            --quiet \
+            --container app \
+            --image "${IMAGE}:${GITHUB_SHA}"
+
+      # The VM's store-image-watcher service sees the new value and rolls only the worker container
+      - name: Deploy the worker role (VM)
+        run: |
+          gcloud compute instances add-metadata "$WORKER_VM" \
+            --zone "$ZONE" \
+            --metadata "app-image=${IMAGE}:${GITHUB_SHA}"
+
+      - name: Smoke test
+        id: smoke
+        run: |
+          url=$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value(status.url)')
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          for path in / /login; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$url$path")
+            echo "$path -> $code"
+            [ "$code" = 200 ] || exit 1
+          done
+          # Management endpoints must stay private
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$url/actuator/health")
+          echo "/actuator/health -> $code (expected 404)"
+          [ "$code" = 404 ] || exit 1
+
+      - name: Summary
+        run: |
+          {
+            echo "### Deployed \`${GITHUB_SHA::7}\`"
+            echo "- Web (Cloud Run): ${{ steps.smoke.outputs.url }}"
+            echo "- Worker VM: \`${IMAGE}:${GITHUB_SHA}\` (rolled by the VM's image watcher)"
+          } >> "$GITHUB_STEP_SUMMARY"

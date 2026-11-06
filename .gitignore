@@ -38,3 +38,13 @@ build/
 
 ### Uploaded files (runtime data — persisted via Docker volume in prod) ###
 uploads/
+
+### Terraform ###
+# Providers and local state never go to git; the lock file does (pins provider versions)
+infra/terraform/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+# Personal Terraform values (e.g. the alert email address)
+infra/terraform/*.auto.tfvars
