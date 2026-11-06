@@ -1,5 +1,5 @@
 # ── Build: the project's own Maven wrapper, so the image is built with the same Maven as CI ──
-FROM eclipse-temurin:17-jdk-jammy AS build
+FROM eclipse-temurin:25-jdk-jammy AS build
 WORKDIR /build
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q -ntp package -DskipTests \
     && java -Djarmode=tools -jar app.jar extract --layers --launcher --destination extracted
 
 # ── Run: JRE only, non-root ──
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:25-jre-jammy
 RUN groupadd --system --gid 10001 app \
     && useradd --system --uid 10001 --gid app --no-create-home app \
     && mkdir -p /app/uploads \
