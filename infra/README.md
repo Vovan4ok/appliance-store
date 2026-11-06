@@ -99,3 +99,8 @@ Infrastructure changes stay manual on purpose: `terraform plan`, review, `terraf
 > **Fresh project:** Cloud Monitoring rejects an alert on a metric it has never received. The *Order worker is
 > not reporting* alert therefore fails on the very first apply; run `terraform apply` again a few minutes after the
 > worker VM is up and its Ops Agent has sent the first metrics.
+
+> **Plan right before you apply, never across a deployment.** A Terraform update of the VM sends its whole metadata
+> map. `app-image` is ignored when *planning*, but a saved plan still carries the value from planning time: applying
+> it after a deployment changed `app-image` would point the worker back at the older image (the image watcher would
+> then roll it back). So: wait for running deployments to finish, `terraform plan -out …`, review, apply right away.
