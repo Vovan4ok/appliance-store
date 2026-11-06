@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 # ── Build: the project's own Maven wrapper, so the image is built with the same Maven as CI ──
 FROM eclipse-temurin:17-jdk-jammy AS build
 WORKDIR /build

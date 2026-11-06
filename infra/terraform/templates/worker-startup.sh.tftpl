@@ -1,0 +1,58 @@
+#!/bin/bash
+# Runs on every boot of the worker VM (and on demand: sudo google_metadata_script_runner startup).
+# Idempotent: installs Docker once, then (re)writes the config from Secret Manager and brings the stack up.
+set -euo pipefail
+exec > >(logger -t store-startup) 2>&1
+
+PROJECT="${project_id}"
+STORE_DIR=/opt/store
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "Installing Docker"
+  apt-get update
+  apt-get install -y ca-certificates curl
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+  . /etc/os-release
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $VERSION_CODENAME stable" \
+    > /etc/apt/sources.list.d/docker.list
+  apt-get update
+  apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+fi
+
+metadata() {
+  curl -fsS -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$1"
+}
+secret() {
+  gcloud secrets versions access latest --secret="$1" --project="$PROJECT"
+}
+
+mkdir -p "$STORE_DIR"
+metadata worker-compose > "$STORE_DIR/docker-compose.yml"
+
+# Secrets only in a root-only file, never in metadata or logs
+umask 077
+{
+  echo "APP_IMAGE=$(metadata app-image)"
+  echo "DB_PASSWORD=$(secret db-password)"
+  echo "REDIS_PASSWORD=$(secret redis-password)"
+  echo "JWT_SECRET=$(secret jwt-secret)"
+  echo "MAIL_USERNAME=$(secret mail-username)"
+  echo "MAIL_PASSWORD=$(secret mail-password)"
+  echo "MAIL_FROM=$(secret mail-from)"
+} > "$STORE_DIR/.env.tmp"
+mv "$STORE_DIR/.env.tmp" "$STORE_DIR/.env"
+
+# Pull the app image from Artifact Registry with the VM's service account
+gcloud auth configure-docker "${registry_host}" --quiet
+
+cd "$STORE_DIR"
+# Redis and Temporal first: they must run even before the first app image exists
+docker compose up -d redis temporal
+if docker compose pull worker; then
+  docker compose up -d --remove-orphans worker
+else
+  echo "App image not available yet ($(metadata app-image)); worker not started"
+fi
+docker image prune -f
+echo "Startup finished"

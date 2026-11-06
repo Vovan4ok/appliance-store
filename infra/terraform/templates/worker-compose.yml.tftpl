@@ -1,0 +1,73 @@
+# Rendered by Terraform into /opt/store/docker-compose.yml on the worker VM.
+# $${...} values come from /opt/store/.env, which the startup script fills from Secret Manager.
+services:
+  redis:
+    image: redis:7.4-alpine
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    environment:
+      REDIS_PASSWORD: $${REDIS_PASSWORD}
+    ports:
+      - "6379:6379" # reachable from Cloud Run through the VPC (firewall: subnet only)
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  temporal:
+    image: temporalio/temporal:1.9.1
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/home/temporal/temporal.db"]
+    ports:
+      - "7233:7233" # gRPC for the web role on Cloud Run (firewall: subnet only)
+      - "8233:8233" # Web UI, only through an IAP tunnel (firewall: IAP range only)
+    volumes:
+      - temporal_data:/home/temporal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health", "--address", "localhost:7233"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # The app in its worker role: runs the order-approval workflows and activities, serves no users
+  worker:
+    image: $${APP_IMAGE}
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      TEMPORAL_WORKER_ENABLED: "true"
+      TEMPORAL_ADDRESS: temporal:7233
+      DB_URL: jdbc:postgresql://${db_host}:5432/${db_name}?sslmode=require
+      DB_USERNAME: ${db_user}
+      DB_PASSWORD: $${DB_PASSWORD}
+      DB_POOL_SIZE: "${db_pool_size}"
+      REDIS_HOST: redis
+      REDIS_PASSWORD: $${REDIS_PASSWORD}
+      JWT_SECRET: $${JWT_SECRET}
+      MAIL_HOST: smtp-relay.brevo.com
+      MAIL_PORT: "587"
+      MAIL_USERNAME: $${MAIL_USERNAME}
+      MAIL_PASSWORD: $${MAIL_PASSWORD}
+      MAIL_FROM: $${MAIL_FROM}
+      # Sample accounts use strangers' real addresses: every email goes to your own inbox
+      MAIL_REDIRECT_TO: $${MAIL_FROM}
+      MAIL_SMTP_AUTH: "true"
+      MAIL_SMTP_STARTTLS: "true"
+      AI_CHAT_PROVIDER: none
+      ORDER_APPROVAL_REMINDER_AFTER: ${reminder_after}
+      ORDER_APPROVAL_EXPIRE_AFTER: ${expire_after}
+    ports:
+      - "127.0.0.1:8081:8081" # health and metrics, on the VM only
+    mem_limit: 1200m
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+
+volumes:
+  redis_data:
+  temporal_data:
