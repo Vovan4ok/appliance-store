@@ -60,7 +60,7 @@ terraform output web_url
 
 ## Continuous deployment
 
-`.github/workflows/deploy.yml` runs on every push to `master` (and `gcp-deployment` while it exists):
+`.github/workflows/deploy.yml` runs on every push to `master`:
 
 1. **Test**: `./mvnw verify` (unit + integration tests, checkstyle); nothing is deployed if it fails
 2. **Build** one image, tagged with the commit SHA, pushed to Artifact Registry (layer cache in GitHub Actions)
