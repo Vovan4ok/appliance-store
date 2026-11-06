@@ -46,3 +46,5 @@ infra/terraform/.terraform/
 *.tfstate.*
 *.tfplan
 crash.log
+# Personal Terraform values (e.g. the alert email address)
+infra/terraform/*.auto.tfvars

@@ -4,7 +4,7 @@ locals {
   db_url = "jdbc:postgresql://${google_sql_database_instance.main.private_ip_address}:5432/${google_sql_database.store.name}?sslmode=require"
 
   web_env = {
-    SPRING_PROFILES_ACTIVE   = "prod"
+    SPRING_PROFILES_ACTIVE   = "prod,gcp" # gcp: export only the metrics the dashboard and alerts use
     DB_URL                   = local.db_url
     DB_USERNAME              = google_sql_user.app.name
     DB_POOL_SIZE             = tostring(var.db_pool_size)
@@ -76,6 +76,7 @@ resource "google_cloud_run_v2_service" "web" {
     }
 
     containers {
+      name  = "app"
       image = var.app_image
 
       ports {
@@ -137,6 +138,39 @@ resource "google_cloud_run_v2_service" "web" {
         period_seconds    = 30
         timeout_seconds   = 5
         failure_threshold = 3
+      }
+    }
+
+    # Managed Prometheus collector: scrapes the app's private :8081 from inside the instance and writes to Cloud
+    # Monitoring. With request-based CPU it scrapes reliably only while requests are served; the counters it reads
+    # only change then, and always-on numbers come from the worker VM and Cloud Run's own metrics.
+    containers {
+      name       = "collector"
+      image      = "us-docker.pkg.dev/cloud-ops-agents-artifacts/cloud-run-gmp-sidecar/cloud-run-gmp-sidecar:1.2.0"
+      depends_on = ["app"]
+
+      resources {
+        limits = {
+          cpu    = "0.5"
+          memory = "256Mi"
+        }
+        cpu_idle = true
+      }
+
+      volume_mounts {
+        name       = "gmp-config"
+        mount_path = "/etc/rungmp/"
+      }
+    }
+
+    volumes {
+      name = "gmp-config"
+      secret {
+        secret = google_secret_manager_secret.gmp_config.secret_id
+        items {
+          version = "latest"
+          path    = "config.yaml"
+        }
       }
     }
   }

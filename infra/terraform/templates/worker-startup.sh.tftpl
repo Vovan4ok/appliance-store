@@ -20,6 +20,45 @@ if ! command -v docker >/dev/null 2>&1; then
   apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 fi
 
+# ── Google Ops Agent: journal (startup script, watcher, all containers) → Cloud Logging,
+#    worker's Prometheus metrics → Managed Prometheus ──
+if ! systemctl list-unit-files google-cloud-ops-agent.service >/dev/null 2>&1; then
+  echo "Installing the Ops Agent"
+  curl -fsSL https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh -o /tmp/add-ops-agent-repo.sh
+  bash /tmp/add-ops-agent-repo.sh --also-install
+fi
+cat > /etc/google-cloud-ops-agent/config.yaml.new <<'OPS'
+logging:
+  receivers:
+    journal:
+      type: systemd_journald
+  service:
+    pipelines:
+      journal:
+        receivers: [journal]
+metrics:
+  receivers:
+    worker:
+      type: prometheus
+      config:
+        scrape_configs:
+          - job_name: appliance-store-worker
+            scrape_interval: 60s
+            metrics_path: /actuator/prometheus
+            static_configs:
+              - targets: ["localhost:8081"]
+  service:
+    pipelines:
+      worker:
+        receivers: [worker]
+OPS
+if ! cmp -s /etc/google-cloud-ops-agent/config.yaml.new /etc/google-cloud-ops-agent/config.yaml; then
+  mv /etc/google-cloud-ops-agent/config.yaml.new /etc/google-cloud-ops-agent/config.yaml
+  systemctl restart google-cloud-ops-agent
+else
+  rm /etc/google-cloud-ops-agent/config.yaml.new
+fi
+
 metadata() {
   curl -fsS -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$1"
 }

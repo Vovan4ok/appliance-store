@@ -83,6 +83,7 @@ jobs:
         run: |
           gcloud run services update "$SERVICE" \
             --region "$REGION" \
+            --container app \
             --image "${IMAGE}:${GITHUB_SHA}" \
             --quiet
 

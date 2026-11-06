@@ -100,3 +100,8 @@ variable "deploy_branches" {
   type        = list(string)
   default     = ["master"]
 }
+
+variable "alert_email" {
+  description = "Where monitoring alerts go. Kept out of git: set it in local.auto.tfvars (ignored) or TF_VAR_alert_email"
+  type        = string
+}

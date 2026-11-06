@@ -77,3 +77,25 @@ for pushes to the branches in `deploy_branches`. The `store-deployer` service ac
 registry, deploy this Cloud Run service and change this VM's metadata.
 
 Infrastructure changes stay manual on purpose: `terraform plan`, review, `terraform apply`.
+
+## Monitoring
+
+- **Dashboard** "Appliance Store" in Cloud Monitoring (`terraform output dashboard_url`), all PromQL:
+  Cloud Run requests/errors/latency/instances (Google's own metrics, free), orders, pending/out-of-stock,
+  logins, AI outcomes/time/tokens, heap and DB pools per role, Cloud SQL CPU/connections, worker VM CPU
+- **Metrics pipeline** (Google Managed Prometheus, billed per sample, so the `gcp` Spring profile exports only
+  ~26 series per role, scraped every 60 s: a few cents a month):
+  - web: `collector` sidecar in the Cloud Run instance scrapes the private `:8081` (config: secret `gmp-config`).
+    With request-based CPU it scrapes reliably only while requests are served — exactly when the web counters change
+  - worker: the Ops Agent on the VM scrapes `localhost:8081` (job `appliance-store-worker`), always on
+- **Logs**: Cloud Run logs as usual; the VM's journal (startup script, image watcher, every container) goes to
+  Cloud Logging through the Ops Agent (`resource.type="gce_instance"`)
+- **Alerts** (email to `alert_email`, set in the uncommitted `local.auto.tfvars`):
+  - *Shop is down*: the uptime check of `/login` (every 5 min, several continents) fails from ≥ 2 regions for 10 min
+  - *Shop returns server errors*: > 5 % of Cloud Run requests end with 5xx for 10 min
+  - *Order worker is not reporting*: no worker metrics for 10 min (reminders and expiry would stop)
+  - plus the budget alert (50/90/100 % of `monthly_budget`)
+
+> **Fresh project:** Cloud Monitoring rejects an alert on a metric it has never received. The *Order worker is
+> not reporting* alert therefore fails on the very first apply; run `terraform apply` again a few minutes after the
+> worker VM is up and its Ops Agent has sent the first metrics.

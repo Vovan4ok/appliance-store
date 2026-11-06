@@ -1,8 +1,16 @@
 # Rendered by Terraform into /opt/store/docker-compose.yml on the worker VM.
 # $${...} values come from /opt/store/.env, which the startup script fills from Secret Manager.
+
+# Container logs go to the systemd journal; the Ops Agent ships them to Cloud Logging (docker logs still works)
+x-logging: &journald
+  driver: journald
+  options:
+    tag: "{{.Name}}"
+
 services:
   redis:
     image: redis:7.4-alpine
+    logging: *journald
     command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
     environment:
       REDIS_PASSWORD: $${REDIS_PASSWORD}
@@ -19,6 +27,7 @@ services:
 
   temporal:
     image: temporalio/temporal:1.9.1
+    logging: *journald
     command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/home/temporal/temporal.db"]
     ports:
       - "7233:7233" # gRPC for the web role on Cloud Run (firewall: subnet only)
@@ -35,8 +44,9 @@ services:
   # The app in its worker role: runs the order-approval workflows and activities, serves no users
   worker:
     image: $${APP_IMAGE}
+    logging: *journald
     environment:
-      SPRING_PROFILES_ACTIVE: prod
+      SPRING_PROFILES_ACTIVE: prod,gcp # gcp: export only the metrics the dashboard and alerts use
       TEMPORAL_WORKER_ENABLED: "true"
       TEMPORAL_ADDRESS: temporal:7233
       DB_URL: jdbc:postgresql://${db_host}:5432/${db_name}?sslmode=require
