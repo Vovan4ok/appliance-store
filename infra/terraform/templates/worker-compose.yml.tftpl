@@ -9,7 +9,7 @@ x-logging: &journald
 
 services:
   redis:
-    image: redis:7.4-alpine
+    image: redis:8.10-alpine
     logging: *journald
     command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
     environment:

@@ -49,7 +49,7 @@ class RedisAiDescriptionCacheTest {
 
     @Container
     @ServiceConnection(name = "redis")
-    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7.4-alpine"))
+    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:8.10-alpine"))
             .withExposedPorts(6379);
 
     @Autowired
