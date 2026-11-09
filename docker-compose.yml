@@ -99,7 +99,7 @@ services:
 
   # ── Observability: Prometheus collects the app's metrics, Grafana shows them ──
   prometheus:
-    image: prom/prometheus:v3.15.1
+    image: prom/prometheus:v3.16.0
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=15d"
