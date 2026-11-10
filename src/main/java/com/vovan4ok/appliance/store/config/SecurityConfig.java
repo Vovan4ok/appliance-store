@@ -93,6 +93,8 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/", "/login", "/register", "/auth/login", "/auth/logout",
                                 "/favicon.ico", "/uploads/**").permitAll()
+                        // The embeddable widget script and its demo page: loaded by any website
+                        .requestMatchers(HttpMethod.GET, "/widget/**").permitAll()
                         // Health check (Docker / load balancers) and metrics for Prometheus; no other actuator
                         // endpoint is exposed. In prod both live only on the internal management port (8081).
                         .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()

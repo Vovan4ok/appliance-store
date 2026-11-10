@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.CacheControl;
 import org.springframework.web.servlet.FlashMap;
 import org.springframework.web.servlet.FlashMapManager;
 import org.springframework.web.servlet.LocaleResolver;
@@ -15,6 +16,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.CookieLocaleResolver;
 import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
 
+import java.time.Duration;
 import java.util.Locale;
 
 @Configuration
@@ -46,6 +48,11 @@ public class MainConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + uploadDir + "/");
+        // The embeddable widget (built from widget/ by `npm run build` or the Docker build). Other websites load
+        // it on every page view, so browsers may keep it an hour; the file name has no version, so not longer
+        registry.addResourceHandler("/widget/**")
+                .addResourceLocations("classpath:/static/widget/")
+                .setCacheControl(CacheControl.maxAge(Duration.ofHours(1)).cachePublic());
     }
 
     @Override

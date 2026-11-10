@@ -109,6 +109,14 @@ describe('<appliance-recommendations>', () => {
     expect(await view.findByText('Dishwasher')).toBeInTheDocument();
   });
 
+  it('opens products in a new tab unless link-target="_self"', async () => {
+    const { view: other } = embed({ 'store-url': STORE, 'appliance-id': '8' });
+    const { view: own } = embed({ 'store-url': STORE, 'appliance-id': '8', 'link-target': '_self' });
+
+    expect(await other.findByRole('link')).toHaveAttribute('target', '_blank');
+    expect(await own.findByRole('link')).toHaveAttribute('target', '_self');
+  });
+
   it('uses the page language when lang is not set', async () => {
     document.documentElement.lang = 'uk';
     try {

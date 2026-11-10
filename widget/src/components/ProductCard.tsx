@@ -9,10 +9,14 @@ export interface ProductCardProps {
   /** The store's address: for the logo and the link */
   store: string;
   onSelect?: ((product: Recommendation) => void) | undefined;
+  /** "_blank" (default): a new tab, for other websites; "_self" for the store's own pages */
+  linkTarget?: LinkTarget | undefined;
 }
 
+export type LinkTarget = '_blank' | '_self';
+
 /** One recommended product. Pure: everything comes from the props. */
-export function ProductCard({ product, lang, store, onSelect }: ProductCardProps) {
+export function ProductCard({ product, lang, store, onSelect, linkTarget = '_blank' }: ProductCardProps) {
   const reasons = reasonLabels(product.reasons, lang);
   const price = formatPrice(product.price, lang);
   const href = `${storeUrl(store, '/shop')}?name=${encodeURIComponent(product.name)}`;
@@ -22,8 +26,8 @@ export function ProductCard({ product, lang, store, onSelect }: ProductCardProps
       <a
         className="asw-card__link"
         href={href}
-        target="_blank"
-        rel="noopener"
+        target={linkTarget}
+        rel={linkTarget === '_blank' ? 'noopener' : undefined}
         onClick={() => onSelect?.(product)}
       >
         <BrandLogo store={store} logo={product.manufacturerLogo} brand={product.manufacturer} />

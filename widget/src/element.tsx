@@ -6,7 +6,7 @@ import type { Recommendation } from './types';
 export const TAG_NAME = 'appliance-recommendations';
 export const SELECT_EVENT = 'recommendation-select';
 
-const ATTRIBUTES = ['store-url', 'appliance-id', 'limit', 'lang', 'heading'] as const;
+const ATTRIBUTES = ['store-url', 'appliance-id', 'limit', 'lang', 'heading', 'link-target'] as const;
 
 // The store is where this script was loaded from, so <script src="https://store/widget/store-widget.js">
 // needs no extra setting. document.currentScript only exists while the script first runs, so read it now.
@@ -60,6 +60,7 @@ export class ApplianceRecommendationsElement extends HTMLElement {
         limit={parseNumber(this.getAttribute('limit'))}
         lang={this.getAttribute('lang') ?? document.documentElement.lang}
         heading={this.getAttribute('heading') ?? undefined}
+        linkTarget={this.getAttribute('link-target') === '_self' ? '_self' : '_blank'}
         onProductSelect={(product: Recommendation) =>
           this.dispatchEvent(new CustomEvent(SELECT_EVENT, { detail: product, bubbles: true }))
         }

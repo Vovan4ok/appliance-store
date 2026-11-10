@@ -16,9 +16,11 @@ export default defineConfig(({ command }) => ({
       formats: ['iife'],
       fileName: () => 'store-widget.js',
     },
-    outDir: 'dist',
+    // Straight into the Spring app's static files: served at /widget/store-widget.js (and /widget/demo.html,
+    // copied from public/). Generated, so git-ignored; the Docker build runs this too
+    outDir: '../src/main/resources/static/widget',
+    emptyOutDir: true,
     target: 'es2022',
-    sourcemap: true,
   },
 
   // `npm run dev`: index.html is a fake third-party page; API calls go to the app on :8080

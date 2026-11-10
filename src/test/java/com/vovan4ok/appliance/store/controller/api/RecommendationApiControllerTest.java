@@ -175,6 +175,14 @@ class RecommendationApiControllerTest {
     }
 
     @Test
+    void widgetScript_isPublic_andCachedForAnHour() throws Exception {
+        mockMvc.perform(get("/widget/store-widget.js"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, containsString("javascript")))
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "max-age=3600, public"));
+    }
+
+    @Test
     void writing_isNotPublic() throws Exception {
         mockMvc.perform(post(URL))
                 .andExpect(status().isUnauthorized())

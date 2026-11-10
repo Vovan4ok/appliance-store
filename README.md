@@ -5,15 +5,19 @@
 
 A full-stack e-commerce web application for managing and selling home appliances, built with Spring Boot 4.1 and Java 17.
 
+**Live demo:** https://appliance-store-xeibhsf7uq-lm.a.run.app (log in with the [sample credentials](#sample-credentials)) ·
+**Embeddable widget demo:** https://appliance-store-xeibhsf7uq-lm.a.run.app/widget/demo.html
+
 ## Tech Stack
 
 - **Backend:** Spring Boot 4.1 (Spring Framework 7), Spring MVC, Spring Security 7, Spring Data JPA (Hibernate 7)
 - **Auth:** Stateless JWT authentication (HttpOnly cookie for MVC; Bearer token for REST API), revocable on logout
-- **Redis:** JWT logout deny-list, AI description cache (Spring Cache), per-user AI rate limit — in-memory fallbacks in dev/test
+- **Redis:** JWT logout deny-list, AI description cache (Spring Cache), per-user AI and per-IP recommendation rate limits — in-memory fallbacks in dev/test
 - **Email:** Spring Mail — async HTML notifications rendered from Thymeleaf templates
 - **AI:** Spring AI 2.0 (`ChatClient`) + OpenAI — product description generator
 - **REST API:** Jackson 3, SpringDoc OpenAPI 3 / Swagger UI
 - **Frontend:** Thymeleaf, Bootstrap 5
+- **Embeddable widget:** React 19 + TypeScript (strict), Vite library build, Web Components (custom element + shadow DOM); Vitest, Testing Library, MSW, ESLint
 - **Database:** PostgreSQL (prod) / H2 (dev)
 - **Migrations:** Flyway
 - **Workflows:** Temporal (Java SDK) — durable order-approval workflow with reminder and expiry timers
@@ -55,8 +59,37 @@ A full-stack e-commerce web application for managing and selling home appliances
 - AI description — `POST /api/v1/appliances/{id}/ai-description?lang=en|uk` (EMPLOYEE only)
 - Orders — list (EMPLOYEE sees all, CLIENT sees own); approve endpoint (EMPLOYEE only)
 - Clients — read-only list and detail
+- Recommendations — `GET /api/v1/recommendations?applianceId=&limit=`, the only public endpoint (see below)
 - Consistent JSON error responses (status, error, message, path) for all 4xx/5xx cases
 - Interactive docs at `/swagger-ui.html` with built-in Bearer auth support
+
+### Recommendations & Embeddable Widget
+Any website can show the store's products with two lines ([live demo](https://appliance-store-xeibhsf7uq-lm.a.run.app/widget/demo.html)):
+
+```html
+<script src="https://appliance-store-xeibhsf7uq-lm.a.run.app/widget/store-widget.js"></script>
+<appliance-recommendations appliance-id="8" limit="4" lang="uk"></appliance-recommendations>
+```
+
+- **Scoring** (`RecommendationScorer`, a pure function): every product in stock is scored against the viewed one —
+  `3 × bought together + 1.5 × same category + 1 × price closeness + 0.5 × same brand`. "Bought together" counts
+  approved orders containing both products (relative to the strongest pair), so real customer behaviour outweighs
+  product similarity. Without `applianceId`: the best sellers. Each result carries its `score` and reason codes
+  (`BOUGHT_TOGETHER`, `SAME_CATEGORY`, `SIMILAR_PRICE`, `SAME_BRAND`, `BEST_SELLER`) that clients translate
+- **Public but limited:** read-only, slim DTO (no stock counts or descriptions), CORS for `GET` only and without
+  credentials (`WIDGET_ALLOWED_ORIGINS`), per-IP rate limit in Redis (`RECOMMENDATIONS_RATE_LIMIT`, 429 with
+  `Retry-After`), `Cache-Control: max-age=300`. The rest of the API stays closed to other websites
+- **The widget** (`widget/`): React + TypeScript built into one script (~72 KB gzipped, React included) that
+  registers the `<appliance-recommendations>` custom element. React renders inside a shadow root, so the host
+  page's CSS can't break it; the page restyles it with `--asw-*` CSS variables. Attributes: `appliance-id`, `limit`,
+  `lang` (`en`/`uk`), `heading`, `link-target`, `store-url` (defaults to where the script came from); changing one
+  re-renders it. Opening a product fires a `recommendation-select` event for the host's analytics
+- **Reusable parts** for React apps (`widget/src/index.ts`): `RecommendationsWidget`, the presentational
+  `RecommendationList` and `ProductCard`, the `useRecommendations` hook (aborts outdated requests, so a slow old
+  answer never replaces a newer one) and the typed API client
+- **The store uses it itself:** best sellers on the home page, "goes with the item added last" in the cart
+- Served by the Spring app at `/widget/` (built into the image by the Dockerfile's Node stage); checked in CI
+  (types, lint, 46 tests, build) and `npm audit` of what ships
 
 ### Email Notifications
 - HTML emails on key events: registration welcome, order submitted, order approved, and a password-changed security alert
@@ -191,6 +224,16 @@ No Maven install needed — the project ships with the Maven wrapper (`mvnw` / `
 
 The Redis integration tests start a real Redis with [Testcontainers](https://testcontainers.com/), so they need Docker; without Docker they are skipped and everything else still runs.
 
+The widget (`widget/`) needs Node.js 24+:
+
+```bash
+cd widget
+npm ci
+npm run check   # types, lint, tests, build (matches CI)
+npm run build   # → src/main/resources/static/widget/, so ./mvnw spring-boot:run serves /widget/ too
+npm run dev     # playground page on http://localhost:5173, API calls go to the app on :8080
+```
+
 ## Getting Started
 
 ### Run locally (dev profile — no Docker needed)
@@ -276,6 +319,9 @@ src/
 │   ├── templates/       # Thymeleaf HTML templates (incl. email/ templates)
 │   └── *.sql            # Dev seed data files
 └── test/                # Unit and controller tests (Mockito, MockMvc)
+widget/                  # Embeddable recommendations widget (React + TypeScript, Vite)
+├── src/                 # Custom element, React components, hook, API client, i18n, tests
+└── public/demo.html     # Demo page, served at /widget/demo.html
 ```
 
 ## Environment Variables (prod)
@@ -305,7 +351,9 @@ src/
 | `MAIL_REDIRECT_TO` | Send every email to this one inbox, original recipient in the subject — needed with real SMTP and the sample data, whose accounts use real-looking addresses of strangers (Docker Compose defaults it to `MAIL_FROM`; empty = real recipients) |
 | `TEMPORAL_WORKER_ENABLED` | `false` = this instance only starts/approves workflows (web role on Cloud Run); another instance runs the worker (default: `true`) |
 | `COOKIE_SECURE` | `true` behind HTTPS: the JWT cookie is only sent over HTTPS (default: `false`) |
-| `FORWARD_HEADERS_STRATEGY` | `framework` behind a proxy such as Cloud Run, so generated URLs use https (default: `none`) |
+| `FORWARD_HEADERS_STRATEGY` | `native` behind a proxy such as Cloud Run: generated URLs use https and the client IP comes from the proxy-appended end of `X-Forwarded-For` (default: `none`) |
+| `RECOMMENDATIONS_RATE_LIMIT` | Calls per IP address and minute to the public recommendations endpoint (default: `60`) |
+| `WIDGET_ALLOWED_ORIGINS` | Websites allowed to call it from the browser: `*` or a comma-separated list, patterns allowed (default: `*`) |
 | `DB_POOL_SIZE` | Max database connections per instance (default: `10`) |
 | `REDIS_PASSWORD` | Redis password (default: none) |
 | `MANAGEMENT_PORT` | Port for `/actuator/health` and `/actuator/prometheus` (default: `8081`) |

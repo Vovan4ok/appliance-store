@@ -2,7 +2,7 @@ import { useId } from 'react';
 import { ApiError } from '../api';
 import { messages, type Lang } from '../i18n';
 import type { Recommendation, RecommendationsState } from '../types';
-import { ProductCard } from './ProductCard';
+import { ProductCard, type LinkTarget } from './ProductCard';
 
 export interface RecommendationListProps {
   state: RecommendationsState;
@@ -13,6 +13,7 @@ export interface RecommendationListProps {
   placeholders: number;
   onRetry: () => void;
   onSelect?: ((product: Recommendation) => void) | undefined;
+  linkTarget?: LinkTarget | undefined;
 }
 
 /**
@@ -27,6 +28,7 @@ export function RecommendationList({
   placeholders,
   onRetry,
   onSelect,
+  linkTarget,
 }: RecommendationListProps) {
   const headingId = useId();
   const t = messages(lang);
@@ -66,7 +68,14 @@ export function RecommendationList({
       {state.status === 'success' && (
         <ul className="asw__grid">
           {state.items.map((product) => (
-            <ProductCard key={product.id} product={product} lang={lang} store={store} onSelect={onSelect} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              lang={lang}
+              store={store}
+              onSelect={onSelect}
+              linkTarget={linkTarget}
+            />
           ))}
         </ul>
       )}

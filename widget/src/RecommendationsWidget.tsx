@@ -1,4 +1,5 @@
 import { clampLimit, DEFAULT_LIMIT } from './api';
+import type { LinkTarget } from './components/ProductCard';
 import { RecommendationList } from './components/RecommendationList';
 import { messages, resolveLang } from './i18n';
 import type { Recommendation } from './types';
@@ -17,6 +18,8 @@ export interface RecommendationsWidgetProps {
   heading?: string | undefined;
   /** Called when the visitor opens a product, e.g. for the host page's analytics */
   onProductSelect?: ((product: Recommendation) => void) | undefined;
+  /** Where product links open: "_blank" (default, a new tab) or "_self" */
+  linkTarget?: LinkTarget | undefined;
 }
 
 /** The whole widget for React apps: loads the data and shows it. */
@@ -27,6 +30,7 @@ export function RecommendationsWidget({
   lang,
   heading,
   onProductSelect,
+  linkTarget,
 }: RecommendationsWidgetProps) {
   const language = resolveLang(lang);
   const size = clampLimit(limit);
@@ -42,6 +46,7 @@ export function RecommendationsWidget({
       placeholders={size}
       onRetry={retry}
       onSelect={onProductSelect}
+      linkTarget={linkTarget}
     />
   );
 }

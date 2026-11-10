@@ -69,7 +69,10 @@ terraform output web_url
 4. **Worker**: sets the VM's `app-image` metadata. The VM's `store-image-watcher` service long-polls the metadata
    server, pulls the image and recreates only the worker container (Redis and Temporal keep running).
    CI needs no SSH access to the VM. Log: `sudo journalctl -u store-image-watcher`
-5. **Smoke test**: `/` and `/login` answer 200, `/actuator/health` stays private (404)
+5. **Smoke test**: `/`, `/login`, the widget script `/widget/store-widget.js` and the public
+   `/api/v1/recommendations` answer 200, `/actuator/health` stays private (404)
+
+Tests before the image is built: `./mvnw verify` and the widget's `npm run check` (types, lint, tests, build).
 
 GitHub authenticates with **Workload Identity Federation**: no key is stored anywhere. Google only accepts tokens
 from this repository (checked by numeric repository and owner id, so a renamed or re-created repo gets nothing)

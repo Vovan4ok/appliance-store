@@ -170,6 +170,45 @@ class ShopControllerTest {
     }
 
     @Test
+    void cart_recommendsProductsForTheItemAddedLast() throws Exception {
+        Orders order = buildPendingOrder(1L);
+        order.getOrderRowSet().add(cartRow(5L, 18L));
+        order.getOrderRowSet().add(cartRow(9L, 27L));
+        order.getOrderRowSet().add(cartRow(7L, 8L));
+        when(orderService.findPendingByClientEmail("client@mail.com")).thenReturn(Optional.of(order));
+
+        mockMvc.perform(get("/shop/cart"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("recommendFor", 27L));
+    }
+
+    @Test
+    void cart_emptyCart_recommendsNothing() throws Exception {
+        when(orderService.findPendingByClientEmail("client@mail.com"))
+                .thenReturn(Optional.of(buildPendingOrder(1L)));
+
+        mockMvc.perform(get("/shop/cart"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeDoesNotExist("recommendFor"));
+    }
+
+    private static OrderRow cartRow(Long rowId, Long applianceId) {
+        Manufacturer manufacturer = new Manufacturer();
+        manufacturer.setName("Bosch");
+        Appliance appliance = new Appliance();
+        appliance.setId(applianceId);
+        appliance.setName("Appliance " + applianceId);
+        appliance.setManufacturer(manufacturer);
+        appliance.setStock(5);
+        OrderRow row = new OrderRow();
+        row.setId(rowId);
+        row.setAppliance(appliance);
+        row.setAmount(new BigDecimal("100.00"));
+        row.setNumber(1L);
+        return row;
+    }
+
+    @Test
     void cart_noPendingOrder_returnsCartViewWithNullOrder() throws Exception {
         when(orderService.findPendingByClientEmail("client@mail.com")).thenReturn(Optional.empty());
 

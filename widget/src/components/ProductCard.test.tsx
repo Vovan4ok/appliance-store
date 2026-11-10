@@ -43,6 +43,14 @@ describe('ProductCard', () => {
     expect(link).toHaveAttribute('rel', 'noopener');
   });
 
+  it('opens in the same tab on the store’s own pages', () => {
+    renderCard({ linkTarget: '_self' });
+
+    const link = screen.getByRole('link');
+    expect(link).toHaveAttribute('target', '_self');
+    expect(link).not.toHaveAttribute('rel');
+  });
+
   it('reports the click', async () => {
     const onSelect = vi.fn();
     renderCard({ onSelect });
