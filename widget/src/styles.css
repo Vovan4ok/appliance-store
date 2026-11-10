@@ -1,0 +1,171 @@
+/*
+ * Theming: the host page sets any of these on the element, e.g.
+ *   appliance-recommendations { --asw-accent: #b91c1c; --asw-radius: 4px; }
+ * Inside, they are read only with a fallback (var(--asw-x, default)) and never declared, so a value set on
+ * the element always wins.
+ */
+.asw {
+  --_accent: var(--asw-accent, #1d4ed8);
+  --_text: var(--asw-text, #111827);
+  --_muted: var(--asw-muted, #6b7280);
+  --_card-bg: var(--asw-card-bg, #ffffff);
+  --_border: var(--asw-border, #e5e7eb);
+  --_placeholder: var(--asw-placeholder, #f3f4f6);
+  --_radius: var(--asw-radius, 12px);
+  --_card-min: var(--asw-card-min-width, 180px);
+
+  font-family: var(--asw-font, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+  color: var(--_text);
+  line-height: 1.4;
+}
+
+.asw *,
+.asw *::before,
+.asw *::after {
+  box-sizing: border-box;
+}
+
+.asw__heading {
+  margin: 0 0 12px;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+/* As many columns as fit; one column on a phone */
+.asw__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--_card-min), 100%), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.asw-card__link {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+  padding: 12px;
+  border: 1px solid var(--_border);
+  border-radius: var(--_radius);
+  background: var(--_card-bg);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.asw-card__link:hover {
+  border-color: var(--_accent);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+}
+
+.asw-card__link:focus-visible,
+.asw__retry:focus-visible {
+  outline: 2px solid var(--_accent);
+  outline-offset: 2px;
+}
+
+.asw-card__logo {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  background: var(--_placeholder);
+  object-fit: contain;
+}
+
+.asw-card__logo--initial {
+  display: grid;
+  place-items: center;
+  color: var(--_muted);
+  font-weight: 600;
+}
+
+.asw-card__brand {
+  color: var(--_muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.asw-card__name {
+  font-weight: 600;
+}
+
+.asw-card__model {
+  color: var(--_muted);
+  font-size: 0.8125rem;
+}
+
+.asw-card__reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.asw-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--_accent) 10%, transparent);
+  color: var(--_accent);
+  font-size: 0.6875rem;
+}
+
+/* Price at the bottom, so prices line up across cards of different heights */
+.asw-card__price {
+  margin-top: auto;
+  padding-top: 6px;
+  color: var(--_accent);
+  font-weight: 700;
+}
+
+.asw-skeleton {
+  height: 180px;
+  border-radius: var(--_radius);
+  background: linear-gradient(90deg, var(--_placeholder) 25%, var(--_border) 50%, var(--_placeholder) 75%);
+  background-size: 200% 100%;
+  animation: asw-shimmer 1.2s infinite linear;
+}
+
+@keyframes asw-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asw-skeleton {
+    animation: none;
+  }
+}
+
+.asw__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--_muted);
+}
+
+.asw__retry {
+  padding: 4px 12px;
+  border: 1px solid var(--_accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--_accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.asw-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

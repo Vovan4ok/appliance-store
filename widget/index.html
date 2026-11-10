@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Widget playground</title>
+    <style>
+      /* A "third-party" page with its own aggressive CSS: none of it may reach the widget */
+      body { max-width: 960px; margin: 0 auto; padding: 24px 16px; font-family: Georgia, serif; }
+      h2 { color: crimson; text-transform: uppercase; }
+      a { color: green; }
+      li { list-style: square; }
+      .themed { --asw-accent: #b45309; --asw-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <h1>Kitchen blog</h1>
+    <p>
+      Development page for <code>npm run dev</code>. Start the store on :8080 first; the dev server
+      forwards <code>/api</code> to it.
+    </p>
+
+    <h2>For product 8 (English)</h2>
+    <appliance-recommendations appliance-id="8" limit="4"></appliance-recommendations>
+
+    <h2>Best sellers (Ukrainian, themed)</h2>
+    <appliance-recommendations class="themed" lang="uk" limit="6"></appliance-recommendations>
+
+    <script type="module" src="/src/element.tsx"></script>
+    <script type="module">
+      document.addEventListener('recommendation-select', (event) => {
+        console.log('Visitor opened', event.detail.name);
+      });
+    </script>
+  </body>
+</html>
