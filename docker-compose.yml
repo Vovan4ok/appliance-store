@@ -61,6 +61,8 @@ services:
       MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
       MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
       AI_CHAT_PROVIDER: ${AI_CHAT_PROVIDER:-none}
+      # Optional: comma-separated logins that may only read, like the public demo (empty = no restrictions)
+      DEMO_READ_ONLY_ACCOUNTS: ${DEMO_READ_ONLY_ACCOUNTS:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       REDIS_HOST: redis
       TEMPORAL_ADDRESS: temporal:7233

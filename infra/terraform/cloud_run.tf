@@ -4,14 +4,14 @@ locals {
   db_url = "jdbc:postgresql://${google_sql_database_instance.main.private_ip_address}:5432/${google_sql_database.store.name}?sslmode=require"
 
   web_env = {
-    SPRING_PROFILES_ACTIVE   = "prod,gcp" # gcp: export only the metrics the dashboard and alerts use
-    DB_URL                   = local.db_url
-    DB_USERNAME              = google_sql_user.app.name
-    DB_POOL_SIZE             = tostring(var.db_pool_size)
-    REDIS_HOST               = google_compute_address.worker.address
-    TEMPORAL_ADDRESS         = "${google_compute_address.worker.address}:7233"
-    TEMPORAL_WORKER_ENABLED  = "false" # the VM runs the worker; Cloud Run only starts/approves workflows
-    COOKIE_SECURE            = "true"
+    SPRING_PROFILES_ACTIVE  = "prod,gcp" # gcp: export only the metrics the dashboard and alerts use
+    DB_URL                  = local.db_url
+    DB_USERNAME             = google_sql_user.app.name
+    DB_POOL_SIZE            = tostring(var.db_pool_size)
+    REDIS_HOST              = google_compute_address.worker.address
+    TEMPORAL_ADDRESS        = "${google_compute_address.worker.address}:7233"
+    TEMPORAL_WORKER_ENABLED = "false" # the VM runs the worker; Cloud Run only starts/approves workflows
+    COOKIE_SECURE           = "true"
     # Tomcat's RemoteIpValve: trusts X-Forwarded-For/-Proto only from internal addresses (Cloud Run's front end
     # connects from 169.254.x.x) and takes the client IP from the RIGHT end of X-Forwarded-For, which Google
     # appends. "framework" took the LEFT end, which any client can fake (bypassing per-IP rate limits)
@@ -22,6 +22,7 @@ locals {
     MAIL_SMTP_AUTH           = "true"
     MAIL_SMTP_STARTTLS       = "true"
     AI_CHAT_PROVIDER         = var.ai_chat_provider
+    DEMO_READ_ONLY_ACCOUNTS  = join(",", var.demo_read_only_accounts)
   }
 
   web_secret_env = {

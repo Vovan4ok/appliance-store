@@ -43,6 +43,12 @@ variable "ai_chat_provider" {
   default     = "openai"
 }
 
+variable "demo_read_only_accounts" {
+  description = "Logins that can see everything but change nothing: the sample accounts, whose passwords are public in the README. Keep your own employee account out of this list"
+  type        = list(string)
+  default     = ["phobos@gmail.com", "moon@gmail.com", "mercury@gmail.com", "jupiter@gmail.com"]
+}
+
 variable "web_max_instances" {
   description = "Upper limit for Cloud Run instances (each holds up to db_pool_size database connections)"
   type        = number

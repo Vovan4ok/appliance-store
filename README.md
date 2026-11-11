@@ -5,7 +5,7 @@
 
 A full-stack e-commerce web application for managing and selling home appliances, built with Spring Boot 4.1 and Java 17.
 
-**Live demo:** https://appliance-store-xeibhsf7uq-lm.a.run.app (log in with the [sample credentials](#sample-credentials)) ·
+**Live demo:** https://appliance-store-xeibhsf7uq-lm.a.run.app (the [sample logins](#sample-credentials) are read-only; register your own client account to try ordering) ·
 **Embeddable widget demo:** https://appliance-store-xeibhsf7uq-lm.a.run.app/widget/demo.html
 
 ## Tech Stack
@@ -293,6 +293,11 @@ A [Mailpit](https://mailpit.axllent.org/) container catches all outgoing email �
 | Client | `mercury@gmail.com` | `Mercury@123!` |
 | Client | `jupiter@gmail.com` | `Jupiter@123!` |
 
+> **On the live demo these accounts are read-only** (`DEMO_READ_ONLY_ACCOUNTS`): you can open every page, but
+> changes, deletions, approvals and AI requests are blocked — the passwords above are public, so otherwise anyone
+> could delete the data or change a password and lock everyone else out. To try ordering, **register your own
+> client account**. Locally (dev profile, Docker Compose) nothing is restricted.
+
 ## Project Structure
 
 ```
@@ -353,6 +358,7 @@ widget/                  # Embeddable recommendations widget (React + TypeScript
 | `COOKIE_SECURE` | `true` behind HTTPS: the JWT cookie is only sent over HTTPS (default: `false`) |
 | `FORWARD_HEADERS_STRATEGY` | `native` behind a proxy such as Cloud Run: generated URLs use https and the client IP comes from the proxy-appended end of `X-Forwarded-For` (default: `none`) |
 | `RECOMMENDATIONS_RATE_LIMIT` | Calls per IP address and minute to the public recommendations endpoint (default: `60`) |
+| `DEMO_READ_ONLY_ACCOUNTS` | Comma-separated logins that can see everything but change nothing — for a public demo with published sample passwords (default: empty, no restrictions) |
 | `WIDGET_ALLOWED_ORIGINS` | Websites allowed to call it from the browser: `*` or a comma-separated list, patterns allowed (default: `*`) |
 | `DB_POOL_SIZE` | Max database connections per instance (default: `10`) |
 | `REDIS_PASSWORD` | Redis password (default: none) |
