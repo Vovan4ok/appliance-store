@@ -2,7 +2,10 @@ package com.vovan4ok.appliance.store.config;
 
 import com.vovan4ok.appliance.store.security.JwtAuthenticationFilter;
 import com.vovan4ok.appliance.store.security.JwtUtils;
+import com.vovan4ok.appliance.store.security.ReadOnlyDemoAccounts;
+import com.vovan4ok.appliance.store.security.ReadOnlyDemoFilter;
 import com.vovan4ok.appliance.store.security.TokenDenylist;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +27,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 
@@ -44,6 +48,13 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /** Sample logins of the public demo that may only read (empty unless DEMO_READ_ONLY_ACCOUNTS is set). */
+    @Bean
+    public ReadOnlyDemoAccounts readOnlyDemoAccounts(
+            @Value("${app.demo.read-only-accounts:}") List<String> emails) {
+        return new ReadOnlyDemoAccounts(emails);
     }
 
     @Bean
@@ -78,7 +89,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, TokenDenylist tokenDenylist) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, TokenDenylist tokenDenylist,
+                                                   ReadOnlyDemoAccounts readOnlyDemoAccounts) throws Exception {
         JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtUtils(), tokenDenylist);
 
         http
@@ -125,37 +137,35 @@ public class SecurityConfig {
                 )
                 .requestCache(cache -> cache.disable())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                // Right after the user is known: read-only demo accounts can't change anything
+                .addFilterAfter(new ReadOnlyDemoFilter(readOnlyDemoAccounts), JwtAuthenticationFilter.class)
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .logout(logout -> logout.disable())
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            if (request.getRequestURI().startsWith(request.getContextPath() + "/api/")) {
-                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                                response.setContentType("application/json;charset=UTF-8");
-                                response.getWriter().write(
-                                        "{\"status\":401,\"error\":\"Unauthorized\","
-                                        + "\"message\":\"Authentication required\"}");
-                            } else {
-                                response.sendRedirect(request.getContextPath() + "/login");
-                            }
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            if (request.getRequestURI().startsWith(request.getContextPath() + "/api/")) {
-                                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                                response.setContentType("application/json;charset=UTF-8");
-                                response.getWriter().write(
-                                        "{\"status\":403,\"error\":\"Forbidden\","
-                                        + "\"message\":\"Access denied\"}");
-                            } else {
-                                response.sendRedirect(request.getContextPath() + "/login");
-                            }
-                        })
+                        .authenticationEntryPoint((request, response, authException) -> jsonForApiElseLogin(
+                                request, response, HttpServletResponse.SC_UNAUTHORIZED,
+                                "Unauthorized", "Authentication required"))
+                        .accessDeniedHandler((request, response, accessDeniedException) -> jsonForApiElseLogin(
+                                request, response, HttpServletResponse.SC_FORBIDDEN, "Forbidden", "Access denied"))
                 )
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.sameOrigin())
                 );
 
         return http.build();
+    }
+
+    // REST API calls get a JSON error; pages go to the login page
+    private static void jsonForApiElseLogin(HttpServletRequest request, HttpServletResponse response,
+                                            int status, String error, String message) throws IOException {
+        if (request.getRequestURI().startsWith(request.getContextPath() + "/api/")) {
+            response.setStatus(status);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write(
+                    "{\"status\":" + status + ",\"error\":\"" + error + "\",\"message\":\"" + message + "\"}");
+        } else {
+            response.sendRedirect(request.getContextPath() + "/login");
+        }
     }
 }

@@ -60,6 +60,8 @@
                         <span class="small d-none d-sm-inline"
                               th:text="${currentUserDisplayName} ?: ''"></span>
                     </a>
+                    <span th:if="${readOnlyDemo}" class="badge text-bg-warning"
+                          th:text="#{demo.readonly.badge}">Read-only demo</span>
                     <form th:action="@{/auth/logout}" method="post" class="d-inline m-0">
                         <button type="submit" class="btn btn-outline-light btn-sm" th:text="#{nav.logout}">
                             Logout
@@ -70,6 +72,15 @@
                     <a class="btn btn-outline-light btn-sm" th:href="@{/login}">Login</a>
                 </div>
             </div>
+        </div>
+    </div>
+    <!-- After an action a read-only demo account may not do (ReadOnlyDemoFilter adds ?readOnlyDemo) -->
+    <div th:if="${param.readOnlyDemo}" class="w-100 bg-warning-subtle text-dark" role="alert">
+        <div class="container py-2 small">
+            <i class="bi bi-lock-fill me-1"></i>
+            <span th:text="#{demo.readonly.banner}">This demo account is read-only: changes are not saved.</span>
+            <a th:href="@{/register}" class="alert-link" th:text="#{demo.readonly.register}">Register your own account</a><span
+                th:text="#{demo.readonly.registerSuffix}"> to try ordering.</span>
         </div>
     </div>
 </nav>

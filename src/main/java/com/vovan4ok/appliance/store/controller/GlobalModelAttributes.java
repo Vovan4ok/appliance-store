@@ -1,5 +1,6 @@
 package com.vovan4ok.appliance.store.controller;
 
+import com.vovan4ok.appliance.store.security.ReadOnlyDemoAccounts;
 import com.vovan4ok.appliance.store.service.ClientService;
 import com.vovan4ok.appliance.store.service.EmployeeService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +18,16 @@ public class GlobalModelAttributes {
 
     @Autowired(required = false)
     private EmployeeService employeeService;
+
+    @Autowired(required = false)
+    private ReadOnlyDemoAccounts readOnlyDemoAccounts;
+
+    /** True for a read-only demo login: the navbar shows a badge, so the restriction is clear up front. */
+    @ModelAttribute("readOnlyDemo")
+    public boolean readOnlyDemo(Authentication auth) {
+        return readOnlyDemoAccounts != null && auth != null && auth.isAuthenticated()
+                && readOnlyDemoAccounts.isReadOnly(auth.getName());
+    }
 
     @ModelAttribute("currentUri")
     public String currentUri(HttpServletRequest request) {
