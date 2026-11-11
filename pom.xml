@@ -14,7 +14,7 @@
 	<name>Appliance-store-Spring</name>
 	<description>Appliance store - Demo project for Spring Boot</description>
 	<properties>
-		<java.version>17</java.version>
+		<java.version>21</java.version>
 		<temporal.version>1.40.0</temporal.version>
 		<spock.version>2.5-groovy-5.0</spock.version>
 	</properties>
@@ -39,6 +39,17 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<!-- jOOQ next to JPA for the read-only sales report: typed SQL (window functions, filtered aggregates)
+		     on the same DataSource and Spring transactions; JPA keeps all the writes -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jooq</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jooq-test</artifactId>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -107,6 +118,11 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers-junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-postgresql</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -218,6 +234,73 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<!-- jOOQ code generation from the Flyway migrations: jOOQ runs the scripts in an in-memory database
+			     and generates typed table classes into target/, so the build needs no running database and the
+			     classes always match the real schema. Nothing generated is committed -->
+			<plugin>
+				<groupId>org.jooq</groupId>
+				<artifactId>jooq-codegen-maven</artifactId>
+				<version>${jooq.version}</version>
+				<executions>
+					<execution>
+						<id>jooq-codegen</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>org.jooq</groupId>
+						<artifactId>jooq-meta-extensions</artifactId>
+						<version>${jooq.version}</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<generator>
+						<database>
+							<name>org.jooq.meta.extensions.ddl.DDLDatabase</name>
+							<properties>
+								<property>
+									<key>scripts</key>
+									<value>src/main/resources/db/migration/*.sql</value>
+								</property>
+								<!-- V1, V2 ... V10 in Flyway's order, not alphabetical -->
+								<property>
+									<key>sort</key>
+									<value>flyway</value>
+								</property>
+								<!-- Unquoted names as PostgreSQL stores them (lower case) -->
+								<property>
+									<key>defaultNameCase</key>
+									<value>lower</value>
+								</property>
+							</properties>
+							<inputSchema>PUBLIC</inputSchema>
+							<!-- No schema in the generated SQL: the connection's default schema is used -->
+							<outputSchemaToDefault>true</outputSchemaToDefault>
+							<forcedTypes>
+								<!-- appliance.category is VARCHAR in SQL, the Category enum in Java (like the entity) -->
+								<forcedType>
+									<userType>com.vovan4ok.appliance.store.model.Category</userType>
+									<enumConverter>true</enumConverter>
+									<includeExpression>appliance\.category</includeExpression>
+								</forcedType>
+							</forcedTypes>
+						</database>
+						<generate>
+							<!-- Read-only queries map straight to Java records: no table records or DAOs needed -->
+							<records>false</records>
+							<javaTimeTypes>true</javaTimeTypes>
+						</generate>
+						<target>
+							<packageName>com.vovan4ok.appliance.store.jooq</packageName>
+							<directory>target/generated-sources/jooq</directory>
+						</target>
+					</generator>
+				</configuration>
+			</plugin>
 			<!-- Compiles the Groovy specifications in src/test/groovy -->
 			<plugin>
 				<groupId>org.codehaus.gmavenplus</groupId>
@@ -250,6 +333,10 @@
 				<version>3.6.0</version>
 				<configuration>
 					<configLocation>checkstyle.xml</configLocation>
+					<!-- Only our code: not the jOOQ classes generated into target/generated-sources -->
+					<sourceDirectories>
+						<sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+					</sourceDirectories>
 					<includeTestSourceDirectory>false</includeTestSourceDirectory>
 					<failsOnError>true</failsOnError>
 					<violationSeverity>error</violationSeverity>

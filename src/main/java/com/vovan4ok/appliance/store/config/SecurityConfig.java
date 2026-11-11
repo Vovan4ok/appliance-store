@@ -130,7 +130,7 @@ public class SecurityConfig {
                         // MVC routes
                         .requestMatchers(HttpMethod.GET, "/manufacturers", "/manufacturers/*").authenticated()
                         .requestMatchers("/employees/**", "/manufacturers/**",
-                                "/appliances/**", "/clients/**").hasRole("EMPLOYEE")
+                                "/appliances/**", "/clients/**", "/reports/**").hasRole("EMPLOYEE")
                         .requestMatchers("/shop/**").hasRole("CLIENT")
                         .requestMatchers("/orders/**").authenticated()
                         .anyRequest().authenticated()

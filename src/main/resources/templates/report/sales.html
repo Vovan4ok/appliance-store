@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <title th:text="#{report.title}">Sales report</title>
+</head>
+<body class="d-flex flex-column min-vh-100">
+<header>
+    <div th:insert="~{menunavy::navy}"></div>
+</header>
+<main class="container my-4 flex-grow-1">
+
+    <div class="mb-4">
+        <h1 class="h2 mb-1" th:text="#{report.title}">Sales report</h1>
+        <p class="text-muted mb-0" th:text="#{report.subtitle}">Revenue counts approved orders only.</p>
+    </div>
+
+    <!-- Order pipeline: one query, one aggregate per stage -->
+    <h2 class="h5 mb-3" th:text="#{report.pipeline}">Orders by stage</h2>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"
+             th:each="stage : ${ {
+                 {'order.status.cart', 'bi-cart3', 'secondary', report.pipeline.carts},
+                 {'order.status.pending', 'bi-hourglass-split', 'warning', report.pipeline.pending},
+                 {'order.status.approved', 'bi-check-circle', 'success', report.pipeline.approved} } }">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="bi fs-5" th:classappend="|${stage[1]} text-${stage[2]}|"></i>
+                        <span class="fw-semibold" th:text="#{${stage[0]}}">Stage</span>
+                    </div>
+                    <div class="fs-4 fw-bold"><span th:text="${stage[3].value}">0</span> UAH</div>
+                    <div class="small text-muted">
+                        <span th:text="${stage[3].orders}">0</span> <span th:text="#{report.orders}">orders</span>
+                        · <span th:text="${stage[3].units}">0</span> <span th:text="#{report.units}">units</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Revenue by category and by brand: same query, different grouping column -->
+        <div class="col-lg-6"
+             th:each="group : ${ { {'report.byCategory', report.byCategory}, {'report.byBrand', report.byBrand} } }">
+            <h2 class="h5 mb-3" th:text="#{${group[0]}}">Revenue</h2>
+            <div class="card shadow-sm border-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-dark">
+                        <tr>
+                            <th th:text="#{report.group}">Group</th>
+                            <th class="text-end" th:text="#{report.orders}">Orders</th>
+                            <th class="text-end d-none d-sm-table-cell" th:text="#{report.units}">Units</th>
+                            <th class="text-end" th:text="#{report.revenue}">Revenue</th>
+                            <th style="width: 30%" th:text="#{report.share}">Share</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="row : ${group[1]}">
+                            <td class="fw-semibold" th:text="${row.key} ?: #{report.noBrand}">Group</td>
+                            <td class="text-end" th:text="${row.orders}">0</td>
+                            <td class="text-end d-none d-sm-table-cell" th:text="${row.units}">0</td>
+                            <td class="text-end text-nowrap"><span th:text="${row.revenue}">0</span> UAH</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 8px" role="progressbar"
+                                         th:aria-valuenow="${row.sharePercent}" aria-valuemin="0"
+                                         aria-valuemax="100">
+                                        <div class="progress-bar" th:style="|width: ${row.sharePercent}%|"></div>
+                                    </div>
+                                    <span class="small text-muted text-nowrap"
+                                          th:text="|${row.sharePercent} %|">0 %</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(group[1])}">
+                            <td colspan="5" class="text-center text-muted py-4" th:text="#{table.empty}">
+                                No records found
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Best sellers: rank() within each category -->
+    <h2 class="h5 mb-1" th:text="#{report.top}">Best sellers per category</h2>
+    <p class="small text-muted mb-3" th:text="#{report.top.note(${topPerCategory})}">
+        Top 3 per category by units sold, then revenue; products that tie share a rank.
+    </p>
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                <tr>
+                    <th th:text="#{object.appliance.category}">Category</th>
+                    <th class="text-center" th:text="#{report.rank}">Rank</th>
+                    <th th:text="#{object.appliance.name}">Name</th>
+                    <th class="text-end" th:text="#{report.units}">Units</th>
+                    <th class="text-end" th:text="#{report.revenue}">Revenue</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="product : ${report.topProducts}">
+                    <td>
+                        <span class="badge"
+                              th:classappend="${product.category.name() == 'BIG'} ? 'bg-primary' : 'bg-secondary'"
+                              th:text="${product.category}">BIG</span>
+                    </td>
+                    <td class="text-center fw-semibold" th:text="${product.rank}">1</td>
+                    <td th:text="${product.name}">Name</td>
+                    <td class="text-end" th:text="${product.units}">0</td>
+                    <td class="text-end text-nowrap"><span th:text="${product.revenue}">0</span> UAH</td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(report.topProducts)}">
+                    <td colspan="5" class="text-center text-muted py-4" th:text="#{table.empty}">No records found</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+<div th:insert="~{footer::footer}"></div>
+</body>
+</html>

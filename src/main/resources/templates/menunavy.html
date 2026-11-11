@@ -27,6 +27,9 @@
                 <li class="nav-item" sec:authorize="hasRole('EMPLOYEE')">
                     <a class="nav-link" th:href="@{/orders}" th:text="#{order.menu.name}">Orders</a>
                 </li>
+                <li class="nav-item" sec:authorize="hasRole('EMPLOYEE')">
+                    <a class="nav-link" th:href="@{/reports/sales}" th:text="#{report.menu}">Sales report</a>
+                </li>
                 <li class="nav-item" sec:authorize="hasRole('CLIENT')">
                     <a class="nav-link" th:href="@{/shop}" th:text="#{nav.shop}">Shop</a>
                 </li>
