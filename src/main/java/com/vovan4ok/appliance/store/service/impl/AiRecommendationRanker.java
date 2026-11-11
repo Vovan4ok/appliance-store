@@ -44,9 +44,9 @@ import java.util.stream.Collectors;
  *       ask again and nothing is asked twice</li>
  *   <li>a global budget of calls per minute (Redis, shared by all instances); above it the scoring order is
  *       used</li>
- *   <li>the request waits at most {@code app.recommendations.ai.wait} for a new ranking (on Cloud Run the
- *       instance only has CPU while a request runs, so the call can't simply be left in the background);
- *       a slower answer still fills the cache for the next visitor</li>
+ *   <li>the request waits at most {@code app.recommendations.ai.wait} for a new ranking (1 s on Cloud Run; the
+ *       model usually needs longer), then answers with the scoring order; the call keeps running and its answer
+ *       fills the cache for the next visitor</li>
  *   <li>the model's answer is untrusted: unknown ids are dropped, duplicates ignored, missing candidates
  *       appended in scoring order, the text cleaned and capped</li>
  *   <li>any failure gives the scoring order: the AI can only improve the answer, never fail it</li>

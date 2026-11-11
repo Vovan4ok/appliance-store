@@ -84,9 +84,9 @@ Any website can show the store's products with two lines ([live demo](https://ap
     ask again, and nothing is asked twice)
   - **global budget** of LLM calls per minute in Redis (`RECOMMENDATIONS_AI_CALLS_PER_MINUTE`, default 6), shared
     by all instances; above it visitors get the scoring order, never an error
-  - the request **waits at most 3 s** for a new ranking (Cloud Run only gives CPU while a request runs, so it
-    can't be left in the background); a later answer still fills the cache for the next visitor, and the
-    response says `Cache-Control: max-age=30` meanwhile
+  - the request **waits briefly** for a new ranking (`RECOMMENDATIONS_AI_WAIT`, 1 s on Cloud Run: the model
+    usually needs 4–6 s), then answers with the scoring order and `Cache-Control: max-age=30`; the call keeps
+    running and its answer fills the cache, so the next visitor gets the AI order in ~0.15 s
   - the model's answer is **untrusted**: unknown ids dropped, duplicates ignored, left-out candidates appended in
     scoring order, text cleaned and capped; product data is fenced in the prompt and can't break out of it
   - **any failure gives the scoring order**; `store_recommendations_ai_total{outcome,reason}` shows how each

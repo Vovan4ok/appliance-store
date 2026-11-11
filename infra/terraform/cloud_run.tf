@@ -25,6 +25,7 @@ locals {
     DEMO_READ_ONLY_ACCOUNTS             = join(",", var.demo_read_only_accounts)
     RECOMMENDATIONS_AI                  = tostring(var.recommendations_ai)
     RECOMMENDATIONS_AI_CALLS_PER_MINUTE = tostring(var.recommendations_ai_calls_per_minute)
+    RECOMMENDATIONS_AI_WAIT             = var.recommendations_ai_wait
   }
 
   web_secret_env = {

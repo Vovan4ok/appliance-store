@@ -55,6 +55,12 @@ variable "recommendations_ai_calls_per_minute" {
   default     = 6
 }
 
+variable "recommendations_ai_wait" {
+  description = "How long a recommendations request waits for a new AI ranking before answering with the scoring order. The model usually needs 4-6 s, longer than visitors should wait; the late answer is cached for the next visitor either way"
+  type        = string
+  default     = "1s"
+}
+
 variable "demo_read_only_accounts" {
   description = "Logins that can see everything but change nothing: the sample accounts, whose passwords are public in the README. Keep your own employee account out of this list"
   type        = list(string)
