@@ -26,6 +26,18 @@ describe('ProductCard', () => {
     expect(reasons).not.toHaveTextContent('NEW_CODE');
   });
 
+  it('shows the AI explanation when the store sends one', () => {
+    renderCard({ product: product({ explanation: 'Dries what your washer cleans' }) });
+
+    expect(screen.getByText('Dries what your washer cleans')).toHaveClass('asw-card__why');
+  });
+
+  it('shows no explanation line without one', () => {
+    const { container } = renderCard({ product: product({ explanation: null }) });
+
+    expect(container.querySelector('.asw-card__why')).toBeNull();
+  });
+
   it('speaks Ukrainian', () => {
     renderCard({ lang: 'uk' });
 

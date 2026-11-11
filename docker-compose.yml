@@ -63,6 +63,8 @@ services:
       AI_CHAT_PROVIDER: ${AI_CHAT_PROVIDER:-none}
       # Optional: comma-separated logins that may only read, like the public demo (empty = no restrictions)
       DEMO_READ_ONLY_ACCOUNTS: ${DEMO_READ_ONLY_ACCOUNTS:-}
+      # AI re-ranking of the widget's recommendations (also needs AI_CHAT_PROVIDER=openai and OPENAI_API_KEY)
+      RECOMMENDATIONS_AI: ${RECOMMENDATIONS_AI:-false}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       REDIS_HOST: redis
       TEMPORAL_ADDRESS: temporal:7233

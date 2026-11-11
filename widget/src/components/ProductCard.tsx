@@ -34,6 +34,7 @@ export function ProductCard({ product, lang, store, onSelect, linkTarget = '_bla
         {product.manufacturer && <span className="asw-card__brand">{product.manufacturer}</span>}
         <span className="asw-card__name">{product.name}</span>
         {product.model && <span className="asw-card__model">{product.model}</span>}
+        {product.explanation && <span className="asw-card__why">{product.explanation}</span>}
         {reasons.length > 0 && (
           <ul className="asw-card__reasons" aria-label={messages(lang).reasonsLabel}>
             {reasons.map((reason) => (

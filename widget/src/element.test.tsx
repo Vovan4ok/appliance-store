@@ -56,6 +56,21 @@ describe('<appliance-recommendations>', () => {
     });
     expect(urls[0]?.searchParams.get('applianceId')).toBe('8');
     expect(urls[0]?.searchParams.get('limit')).toBe('2');
+    expect(urls[0]?.searchParams.get('lang')).toBe('en');
+  });
+
+  it('asks for the explanations in its language, and again when the language changes', async () => {
+    const urls = recordRequests();
+    const { element } = embed({ 'store-url': STORE, 'appliance-id': '8', lang: 'uk-UA' });
+    await waitFor(() => {
+      expect(urls).toHaveLength(1);
+    });
+
+    element.setAttribute('lang', 'en');
+
+    await waitFor(() => {
+      expect(urls.map((u) => u.searchParams.get('lang'))).toEqual(['uk', 'en']);
+    });
   });
 
   it('shows best sellers when appliance-id is missing or not a valid id', async () => {

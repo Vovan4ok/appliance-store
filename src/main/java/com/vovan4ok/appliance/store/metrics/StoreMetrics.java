@@ -23,6 +23,7 @@ public class StoreMetrics {
     public static final String ORDER_AMOUNT = "store.orders.approved.amount";
     public static final String AI_DESCRIPTIONS = "store.ai.descriptions";
     public static final String AI_RATE_LIMITED = "store.ai.rate.limited";
+    public static final String RECOMMENDATIONS_AI = "store.recommendations.ai";
     public static final String LOGINS = "store.auth.logins";
     public static final String LOGOUTS = "store.auth.logouts";
     public static final String PENDING_ORDERS = "store.orders.pending";
@@ -33,6 +34,9 @@ public class StoreMetrics {
 
     /** How an AI description request ended. */
     public enum AiOutcome { GENERATED, CACHED, FALLBACK }
+
+    /** How the AI re-ranking of recommendations ended: from the cache, a new ranking, or the scoring order. */
+    public enum RankingOutcome { CACHED, RANKED, FALLBACK }
 
     private static final String NONE = "none";
 
@@ -95,6 +99,20 @@ public class StoreMetrics {
                 .tag("reason", reason != null ? reason : NONE)
                 .publishPercentileHistogram()
                 .register(registry));
+    }
+
+    /**
+     * Records how the AI re-ranking of one recommendations request ended.
+     *
+     * @param reason why the scoring order was used (AI_ERROR, BUDGET, SLOW...), or null
+     */
+    public void recommendationRanking(RankingOutcome outcome, String reason) {
+        Counter.builder(RECOMMENDATIONS_AI)
+                .description("Recommendation requests by AI re-ranking outcome")
+                .tag("outcome", outcome.name().toLowerCase())
+                .tag("reason", reason != null ? reason : NONE)
+                .register(registry)
+                .increment();
     }
 
     public void aiRateLimited() {

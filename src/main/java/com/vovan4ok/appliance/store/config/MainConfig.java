@@ -36,12 +36,16 @@ public class MainConfig implements WebMvcConfigurer {
     public LocaleChangeInterceptor localeChangeInterceptor() {
         LocaleChangeInterceptor interceptor = new LocaleChangeInterceptor();
         interceptor.setParamName("lang");
+        // ?lang=<anything else> keeps the current language instead of failing the request
+        interceptor.setIgnoreInvalidLocale(true);
         return interceptor;
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(localeChangeInterceptor());
+        // The public recommendations endpoint reads ?lang itself; it must not set a locale cookie on a response
+        // that browsers and caches share
+        registry.addInterceptor(localeChangeInterceptor()).excludePathPatterns("/api/v1/recommendations");
     }
 
     @Override
