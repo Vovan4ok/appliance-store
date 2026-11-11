@@ -1,5 +1,5 @@
 # ── Widget: the embeddable recommendations script (widget/, React + TypeScript) ──
-FROM node:26.12.1-alpine AS widget
+FROM node:26.13.0-alpine AS widget
 WORKDIR /build/widget
 # Dependencies first: reused until the lockfile changes; the cache mount keeps npm's download cache
 COPY widget/package.json widget/package-lock.json widget/.npmrc ./
