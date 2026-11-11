@@ -3,7 +3,7 @@
 [![CI](https://github.com/Vovan4ok/appliance-store/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Vovan4ok/appliance-store/actions/workflows/ci.yml)
 [![Security](https://github.com/Vovan4ok/appliance-store/actions/workflows/security.yml/badge.svg?branch=master)](https://github.com/Vovan4ok/appliance-store/actions/workflows/security.yml)
 
-A full-stack e-commerce web application for managing and selling home appliances, built with Spring Boot 4.1 and Java 17.
+A full-stack e-commerce web application for managing and selling home appliances, built with Spring Boot 4.1 and Java 21.
 
 **Live demo:** https://appliance-store-xeibhsf7uq-lm.a.run.app (the [sample logins](#sample-credentials) are read-only; register your own client account to try ordering) ·
 **Embeddable widget demo:** https://appliance-store-xeibhsf7uq-lm.a.run.app/widget/demo.html
@@ -11,6 +11,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 ## Tech Stack
 
 - **Backend:** Spring Boot 4.1 (Spring Framework 7), Spring MVC, Spring Security 7, Spring Data JPA (Hibernate 7)
+- **Reporting SQL:** jOOQ 3.21 next to JPA — typed queries generated from the Flyway migrations, for the sales report
 - **Auth:** Stateless JWT authentication (HttpOnly cookie for MVC; Bearer token for REST API), revocable on logout
 - **Redis:** JWT logout deny-list, AI description cache (Spring Cache), per-user AI and per-IP recommendation rate limits — in-memory fallbacks in dev/test
 - **Email:** Spring Mail — async HTML notifications rendered from Thymeleaf templates
@@ -23,7 +24,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - **Workflows:** Temporal (Java SDK) — durable order-approval workflow with reminder and expiry timers
 - **Containerization:** Docker, Docker Compose (app, PostgreSQL, Redis, Temporal, Mailpit, Prometheus, Grafana)
 - **Observability:** Micrometer metrics (HTTP, JVM, database pool, Redis, Spring AI + custom business metrics) scraped by Prometheus, provisioned Grafana dashboard; Actuator health check
-- **Testing:** JUnit 5, Mockito, MockMvc, Spock (Groovy specifications with data tables), Testcontainers (real Redis in Docker)
+- **Testing:** JUnit 5, Mockito, MockMvc, Spock (Groovy specifications with data tables), Testcontainers (real Redis and PostgreSQL in Docker)
 - **Build:** Maven
 - **Code style:** Checkstyle (Google-inspired ruleset — `checkstyle.xml`)
 - **CI:** GitHub Actions
@@ -49,6 +50,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - Approve / unapprove submitted orders — approval validates and decrements stock; blocked with a clear error if any item is out of stock
 - Email reminder when a submitted order has waited 24 hours for approval
 - View all orders across all clients
+- Sales report — orders by stage, revenue by category and brand with shares, best sellers per category (see [Sales Report (jOOQ)](#sales-report-jooq))
 - Client and employee list tables show phone and date of birth
 - Profile page — edit profile details, change password, upload avatar
 
@@ -105,6 +107,32 @@ Any website can show the store's products with two lines ([live demo](https://ap
 - **The store uses it itself:** best sellers on the home page, "goes with the item added last" in the cart
 - Served by the Spring app at `/widget/` (built into the image by the Dockerfile's Node stage); checked in CI
   (types, lint, 50 tests, build) and `npm audit` of what ships
+
+### Sales Report (jOOQ)
+
+Employees get a **Sales report** page (`/reports/sales`, also open to the read-only demo logins):
+
+- **Orders by stage** — carts, pending and approved orders with their units and value, in **one query**: every column is
+  an aggregate with `FILTER (WHERE ...)`, and the three stages map into nested records
+- **Revenue by category / by brand** — approved orders only, largest first, each group's **share of the total** via the
+  window function `sum(...) over ()`; both lists come from **one method** that takes the grouping column as a parameter
+- **Best sellers per category** — `rank() over (partition by category order by units, revenue)` in a derived table,
+  filtered outside it; products that tie share a rank
+
+**Why jOOQ here and JPA everywhere else:** the report only reads and aggregates, which is where typed SQL beats an ORM.
+Window functions and filtered aggregates are written as SQL, checked by the compiler against table classes generated
+from the Flyway migrations, and rendered for H2 or PostgreSQL. Results map straight into Java records
+(`Records.mapping`: a wrong column count or type doesn't compile), and no entities are loaded into the persistence
+context. Writes stay with JPA (entities, cascades, validation). Both use the same `DataSource` and Spring transactions.
+
+- **Code generation** (`jooq-codegen-maven`, `DDLDatabase`): at build time jOOQ runs `db/migration/*.sql` in an in-memory
+  database and generates the table classes into `target/generated-sources/jooq`, so the build needs no database and
+  nothing generated is committed. `appliance.category` is mapped to the `Category` enum
+- **Names are rendered unquoted** (`JooqConfig`), so they match both Hibernate's upper-case H2 tables and PostgreSQL
+- **Tested on both databases** with the same assertions (values computed by hand from the seed orders): H2 with the dev
+  setup (`SalesReportRepositoryTest`), and PostgreSQL 16 in Docker with the Flyway migrations
+  (`SalesReportRepositoryPostgresTest`, Testcontainers, skipped without Docker)
+- The `dev` profile logs every jOOQ query with its bind values (`org.jooq.tools.LoggerListener`)
 
 ### Email Notifications
 - HTML emails on key events: registration welcome, order submitted, order approved, and a password-changed security alert
@@ -239,7 +267,7 @@ No Maven install needed — the project ships with the Maven wrapper (`mvnw` / `
 
 Most tests are JUnit 5 + Mockito. The order lifecycle and the recommendation scoring rule are also written as [Spock](https://spockframework.org/) specifications (`src/test/groovy`, `*Spec`): given-when-then blocks with data tables, one row per case. They run in the same `./mvnw test`.
 
-The Redis integration tests start a real Redis with [Testcontainers](https://testcontainers.com/), so they need Docker; without Docker they are skipped and everything else still runs.
+The Redis integration tests and the PostgreSQL sales-report test start real containers with [Testcontainers](https://testcontainers.com/), so they need Docker; without Docker they are skipped and everything else still runs.
 
 The widget (`widget/`) needs Node.js 24+:
 
@@ -326,7 +354,7 @@ src/
 │   ├── exception/       # Custom exceptions (InsufficientStockException)
 │   ├── model/           # JPA entities and DTOs
 │   │   └── dto/api/     # REST request/response DTOs
-│   ├── repository/      # Spring Data JPA repositories + Criteria API spec
+│   ├── repository/      # Spring Data JPA repositories + Criteria API spec; jOOQ SalesReportRepository
 │   ├── security/        # JWT filter and utilities, token deny-list (Redis / in-memory)
 │   ├── service/         # Business logic interfaces and implementations (incl. AI description service)
 │   ├── event/           # Application events (registration, orders, password)
