@@ -20,6 +20,8 @@ export interface RecommendationQuery {
   /** The product being viewed; without it the store returns its best sellers */
   applianceId?: number | undefined;
   limit?: number | undefined;
+  /** Language of the AI explanations: "en" (default) or "uk" */
+  lang?: string | undefined;
 }
 
 /** Joins the store's address and a path from the API ("/uploads/x.png"); absolute URLs stay as they are. */
@@ -32,10 +34,10 @@ export function storeUrl(base: string, path: string): string {
 
 export async function fetchRecommendations(
   base: string,
-  { applianceId, limit = DEFAULT_LIMIT }: RecommendationQuery,
+  { applianceId, limit = DEFAULT_LIMIT, lang = 'en' }: RecommendationQuery,
   signal?: AbortSignal,
 ): Promise<Recommendation[]> {
-  const params = new URLSearchParams({ limit: String(clampLimit(limit)) });
+  const params = new URLSearchParams({ limit: String(clampLimit(limit)), lang });
   if (applianceId !== undefined) {
     params.set('applianceId', String(applianceId));
   }

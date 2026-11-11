@@ -18,15 +18,15 @@ interface Settled {
  */
 export function useRecommendations(
   base: string,
-  { applianceId, limit }: RecommendationQuery,
+  { applianceId, limit, lang }: RecommendationQuery,
 ): RecommendationsState & { retry: () => void } {
   const [attempt, setAttempt] = useState(0);
   const [settled, setSettled] = useState<Settled | null>(null);
-  const key = JSON.stringify([base, applianceId, limit, attempt]);
+  const key = JSON.stringify([base, applianceId, limit, lang, attempt]);
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchRecommendations(base, { applianceId, limit }, controller.signal).then(
+    fetchRecommendations(base, { applianceId, limit, lang }, controller.signal).then(
       (items) => {
         setSettled({ key, state: { status: 'success', items } });
       },
@@ -43,7 +43,7 @@ export function useRecommendations(
     return () => {
       controller.abort();
     };
-  }, [base, applianceId, limit, key]);
+  }, [base, applianceId, limit, lang, key]);
 
   const retry = useCallback(() => {
     setAttempt((n) => n + 1);

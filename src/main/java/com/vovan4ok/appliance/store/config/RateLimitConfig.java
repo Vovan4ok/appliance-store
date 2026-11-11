@@ -2,6 +2,7 @@ package com.vovan4ok.appliance.store.config;
 
 import com.vovan4ok.appliance.store.service.AiRateLimiter;
 import com.vovan4ok.appliance.store.service.RateLimiter;
+import com.vovan4ok.appliance.store.service.RecommendationAiBudget;
 import com.vovan4ok.appliance.store.service.RecommendationRateLimiter;
 import com.vovan4ok.appliance.store.service.impl.InMemoryRateLimiter;
 import com.vovan4ok.appliance.store.service.impl.RedisRateLimiter;
@@ -48,5 +49,11 @@ public class RateLimitConfig {
     public RecommendationRateLimiter recommendationRateLimiter(
             RateLimiterFactory factory, @Value("${app.recommendations.rate-limit.per-minute}") int perMinute) {
         return factory.create("recommendations", perMinute)::acquire;
+    }
+
+    @Bean
+    public RecommendationAiBudget recommendationAiBudget(
+            RateLimiterFactory factory, @Value("${app.recommendations.ai.max-calls-per-minute}") int perMinute) {
+        return factory.create("recommendations-ai", perMinute)::acquire;
     }
 }

@@ -12,4 +12,5 @@ import org.springframework.context.annotation.Configuration;
 public class CacheConfig {
 
     public static final String AI_DESCRIPTIONS = "aiDescriptions";
+    public static final String AI_RANKINGS = "aiRankings";
 }

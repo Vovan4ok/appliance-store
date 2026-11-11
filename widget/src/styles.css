@@ -98,6 +98,13 @@
   font-size: 0.8125rem;
 }
 
+/* The AI's one-line reason (only when the store has AI ranking on) */
+.asw-card__why {
+  color: var(--_text);
+  font-size: 0.8125rem;
+  font-style: italic;
+}
+
 .asw-card__reasons {
   display: flex;
   flex-wrap: wrap;

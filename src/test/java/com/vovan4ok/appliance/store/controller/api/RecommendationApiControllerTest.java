@@ -7,6 +7,7 @@ import com.vovan4ok.appliance.store.model.Category;
 import com.vovan4ok.appliance.store.model.Manufacturer;
 import com.vovan4ok.appliance.store.model.Recommendation;
 import com.vovan4ok.appliance.store.model.RecommendationReason;
+import com.vovan4ok.appliance.store.model.RecommendationResult;
 import com.vovan4ok.appliance.store.security.TokenDenylist;
 import com.vovan4ok.appliance.store.service.RecommendationRateLimiter;
 import com.vovan4ok.appliance.store.service.RecommendationService;
@@ -61,7 +62,7 @@ class RecommendationApiControllerTest {
 
     @Test
     void anonymous_getsRecommendations_withScoreAndReasonCodes() throws Exception {
-        when(recommendationService.recommend(1L, 3)).thenReturn(List.of(recommendation()));
+        when(recommendationService.recommend(1L, 3, "en")).thenReturn(result(recommendation()));
 
         mockMvc.perform(get(URL).param("applianceId", "1").param("limit", "3"))
                 .andExpect(status().isOk())
@@ -76,7 +77,7 @@ class RecommendationApiControllerTest {
 
     @Test
     void publicResponse_hidesTheStockCountAndDescriptions() throws Exception {
-        when(recommendationService.recommend(1L, 4)).thenReturn(List.of(recommendation()));
+        when(recommendationService.recommend(1L, 4, "en")).thenReturn(result(recommendation()));
 
         mockMvc.perform(get(URL).param("applianceId", "1"))
                 .andExpect(status().isOk())
@@ -87,24 +88,71 @@ class RecommendationApiControllerTest {
 
     @Test
     void withoutApplianceId_asksForBestSellers_withTheDefaultLimit() throws Exception {
-        when(recommendationService.recommend(isNull(), anyInt())).thenReturn(List.of());
+        when(recommendationService.recommend(isNull(), anyInt(), anyString())).thenReturn(result());
 
         mockMvc.perform(get(URL)).andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
 
-        verify(recommendationService).recommend(null, 4);
+        verify(recommendationService).recommend(null, 4, "en");
     }
 
     @Test
     void response_mayBeCachedForFiveMinutes() throws Exception {
-        when(recommendationService.recommend(isNull(), anyInt())).thenReturn(List.of());
+        when(recommendationService.recommend(isNull(), anyInt(), anyString())).thenReturn(result());
 
         mockMvc.perform(get(URL))
                 .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "max-age=300, public"));
     }
 
     @Test
+    void whileTheAiRankingIsPrepared_theAnswerIsCachedOnlyBriefly() throws Exception {
+        when(recommendationService.recommend(1L, 4, "en"))
+                .thenReturn(new RecommendationResult(List.of(recommendation()), true));
+
+        mockMvc.perform(get(URL).param("applianceId", "1"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "max-age=30, public"));
+    }
+
+    @Test
+    void aiExplanation_isReturned() throws Exception {
+        when(recommendationService.recommend(1L, 4, "uk")).thenReturn(result(
+                recommendation().withExplanation("Часто купують разом із пральною машиною")));
+
+        mockMvc.perform(get(URL).param("applianceId", "1").param("lang", "uk"))
+                .andExpect(jsonPath("$[0].explanation").value("Часто купують разом із пральною машиною"));
+    }
+
+    @Test
+    void withoutAi_explanationIsNull() throws Exception {
+        when(recommendationService.recommend(1L, 4, "en")).thenReturn(result(recommendation()));
+
+        mockMvc.perform(get(URL).param("applianceId", "1"))
+                .andExpect(jsonPath("$[0].explanation").doesNotExist());
+    }
+
+    @Test
+    void lang_isNormalizedToTheTwoSupportedLanguages() throws Exception {
+        when(recommendationService.recommend(isNull(), anyInt(), anyString())).thenReturn(result());
+
+        mockMvc.perform(get(URL).param("lang", "uk-UA")).andExpect(status().isOk());
+        mockMvc.perform(get(URL).param("lang", "<script>")).andExpect(status().isOk());
+
+        verify(recommendationService).recommend(null, 4, "uk");
+        verify(recommendationService).recommend(null, 4, "en");
+    }
+
+    @Test
+    void publicResponse_neverSetsACookie() throws Exception {
+        when(recommendationService.recommend(isNull(), anyInt(), anyString())).thenReturn(result());
+
+        mockMvc.perform(get(URL).param("lang", "uk"))
+                .andExpect(status().isOk())
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+    }
+
+    @Test
     void unknownProduct_returns404() throws Exception {
-        when(recommendationService.recommend(99L, 4))
+        when(recommendationService.recommend(99L, 4, "en"))
                 .thenThrow(new IllegalArgumentException("Appliance not found: 99"));
 
         mockMvc.perform(get(URL).param("applianceId", "99")).andExpect(status().isNotFound());
@@ -126,12 +174,12 @@ class RecommendationApiControllerTest {
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, OTHER_SITE))
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "Retry-After"));
 
-        verify(recommendationService, never()).recommend(org.mockito.ArgumentMatchers.any(), anyInt());
+        verify(recommendationService, never()).recommend(org.mockito.ArgumentMatchers.any(), anyInt(), anyString());
     }
 
     @Test
     void rateLimit_isPerClientAddress() throws Exception {
-        when(recommendationService.recommend(isNull(), anyInt())).thenReturn(List.of());
+        when(recommendationService.recommend(isNull(), anyInt(), anyString())).thenReturn(result());
 
         mockMvc.perform(get(URL).with(request -> {
             request.setRemoteAddr("203.0.113.7");
@@ -143,7 +191,7 @@ class RecommendationApiControllerTest {
 
     @Test
     void otherWebsite_mayReadIt_withoutCredentials() throws Exception {
-        when(recommendationService.recommend(isNull(), anyInt())).thenReturn(List.of());
+        when(recommendationService.recommend(isNull(), anyInt(), anyString())).thenReturn(result());
 
         mockMvc.perform(get(URL).header(HttpHeaders.ORIGIN, OTHER_SITE))
                 .andExpect(status().isOk())
@@ -187,6 +235,10 @@ class RecommendationApiControllerTest {
         mockMvc.perform(post(URL))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message", containsString("Authentication required")));
+    }
+
+    private static RecommendationResult result(Recommendation... items) {
+        return new RecommendationResult(List.of(items), false);
     }
 
     private static Recommendation recommendation() {

@@ -28,6 +28,8 @@ public class RecommendationResponse {
     private double score;
     /** {@link RecommendationReason} codes; clients translate them. */
     private List<String> reasons;
+    /** One short sentence from the AI re-ranking, in the requested language; null without it. */
+    private String explanation;
 
     public static RecommendationResponse from(Recommendation recommendation) {
         Appliance a = recommendation.appliance();
@@ -41,6 +43,7 @@ public class RecommendationResponse {
                 .price(a.getPrice())
                 .score(recommendation.score())
                 .reasons(recommendation.reasons().stream().map(Enum::name).toList())
+                .explanation(recommendation.explanation())
                 .build();
     }
 }

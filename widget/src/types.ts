@@ -13,6 +13,8 @@ export interface Recommendation {
   score: number;
   /** Reason codes; may contain codes newer than this widget, which are then not shown */
   reasons: string[];
+  /** One short sentence from the store's AI ranking, already in the requested language; null without it */
+  explanation?: string | null;
 }
 
 export const REASON_CODES = [

@@ -5,8 +5,6 @@ import com.vovan4ok.appliance.store.config.CacheConfig;
 import com.vovan4ok.appliance.store.metrics.StoreMetrics;
 import com.vovan4ok.appliance.store.metrics.StoreMetrics.AiOutcome;
 import com.vovan4ok.appliance.store.model.Appliance;
-import com.vovan4ok.appliance.store.model.Category;
-import com.vovan4ok.appliance.store.model.PowerType;
 import com.vovan4ok.appliance.store.model.dto.api.AiDescriptionResponse;
 import com.vovan4ok.appliance.store.service.AiDescriptionService;
 import com.vovan4ok.appliance.store.service.ApplianceService;
@@ -20,16 +18,12 @@ import org.springframework.cache.CacheManager;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.Locale;
 
 @Slf4j
 @Service
 public class AiDescriptionServiceImpl implements AiDescriptionService {
-    private static final int MAX_FIELD_LENGTH = 300;
+
     private static final int MAX_DESCRIPTION_LENGTH = 1000;
     private static final Locale UKRAINIAN = Locale.forLanguageTag("uk");
 
@@ -80,14 +74,15 @@ public class AiDescriptionServiceImpl implements AiDescriptionService {
             return fallback(sample, appliance, target, "AI_DISABLED");
         }
         // Without real characteristics the model can only invent things, so don't ask it
-        if (clean(appliance.getCharacteristic()).isEmpty()) {
+        if (PromptText.clean(appliance.getCharacteristic()).isEmpty()) {
             return fallback(sample, appliance, target, "INSUFFICIENT_DATA");
         }
         String systemPrompt = SYSTEM_PROMPT.formatted(
                 messageSource.getMessage("ai.prompt.language", null, target));
         String userPrompt = productData(appliance);
         // Key includes a hash of both prompts: editing the product or the prompt never serves a stale text
-        String cacheKey = appliance.getId() + ":" + target.getLanguage() + ":" + sha256(systemPrompt + userPrompt);
+        String cacheKey = appliance.getId() + ":" + target.getLanguage() + ":"
+                + PromptText.sha256(systemPrompt + userPrompt);
 
         String cached = cacheGet(cacheKey);
         if (cached != null) {
@@ -103,7 +98,7 @@ public class AiDescriptionServiceImpl implements AiDescriptionService {
             if (text == null || text.isBlank()) {
                 return fallback(sample, appliance, target, "EMPTY_RESPONSE");
             }
-            String description = truncate(text.strip(), MAX_DESCRIPTION_LENGTH);
+            String description = PromptText.truncate(text.strip(), MAX_DESCRIPTION_LENGTH);
             cachePut(cacheKey, description);
             return aiResponse(sample, AiOutcome.GENERATED, appliance, target, description);
         } catch (RuntimeException e) {
@@ -141,15 +136,6 @@ public class AiDescriptionServiceImpl implements AiDescriptionService {
         }
     }
 
-    private static String sha256(String value) {
-        try {
-            byte[] hash = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is always available in the JDK", e);
-        }
-    }
-
     private AiDescriptionResponse fallback(Timer.Sample sample, Appliance appliance, Locale target, String reason) {
         metrics.aiDescription(sample, AiOutcome.FALLBACK, reason);
         return new AiDescriptionResponse(appliance.getId(), target.getLanguage(),
@@ -169,47 +155,9 @@ public class AiDescriptionServiceImpl implements AiDescriptionService {
                 power: %s
                 characteristics: %s
                 </product>
-                """.formatted(clean(appliance.getName()), clean(manufacturer), clean(appliance.getModel()),
-                describe(appliance.getCategory()), describe(appliance.getPowerType()), clean(power),
-                clean(appliance.getCharacteristic()));
-    }
-
-    // Readable words instead of enum constants, so the model doesn't copy "SMALL" or "AC220" into the copy
-    private static String describe(Category category) {
-        if (category == null) {
-            return "";
-        }
-        return switch (category) {
-            case BIG -> "large appliance";
-            case SMALL -> "small appliance";
-        };
-    }
-
-    private static String describe(PowerType powerType) {
-        if (powerType == null) {
-            return "";
-        }
-        return switch (powerType) {
-            case AC220 -> "220 V mains";
-            case AC110 -> "110 V mains";
-            case ACCUMULATOR -> "rechargeable battery";
-        };
-    }
-
-    // Strips control characters and angle brackets (so data can't close the <product> block) and caps the length
-    private static String clean(String value) {
-        if (value == null) {
-            return "";
-        }
-        String cleaned = value.replaceAll("[\\p{Cntrl}<>]", " ").strip();
-        // Placeholder values like "-----" carry no facts
-        if (cleaned.matches("[-\\s]*")) {
-            return "";
-        }
-        return truncate(cleaned, MAX_FIELD_LENGTH);
-    }
-
-    private static String truncate(String value, int max) {
-        return value.length() <= max ? value : value.substring(0, max);
+                """.formatted(PromptText.clean(appliance.getName()), PromptText.clean(manufacturer),
+                PromptText.clean(appliance.getModel()), PromptText.describe(appliance.getCategory()),
+                PromptText.describe(appliance.getPowerType()), PromptText.clean(power),
+                PromptText.clean(appliance.getCharacteristic()));
     }
 }

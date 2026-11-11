@@ -3,6 +3,7 @@ package com.vovan4ok.appliance.store.service.impl;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.Recommendation;
 import com.vovan4ok.appliance.store.model.RecommendationReason;
+import com.vovan4ok.appliance.store.model.RecommendationResult;
 import com.vovan4ok.appliance.store.repository.ApplianceRepository;
 import com.vovan4ok.appliance.store.repository.OrdersRepository;
 import com.vovan4ok.appliance.store.repository.ProductCount;
@@ -35,29 +36,54 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     private final ApplianceRepository applianceRepository;
     private final OrdersRepository ordersRepository;
+    private final AiRecommendationRanker aiRanker;
+
+    /** The viewed product and every candidate in scoring order. */
+    private record Scored(Appliance viewed, List<Recommendation> ranked) {
+    }
 
     @Override
     @Transactional(readOnly = true)
     public List<Recommendation> recommend(Long applianceId, int limit) {
-        int size = Math.max(1, Math.min(limit, MAX_LIMIT));
-        List<Appliance> available = applianceRepository.findByStockGreaterThan(0);
+        int size = clamp(limit);
         if (applianceId == null) {
-            return bestSellers(available, size);
+            return bestSellers(applianceRepository.findByStockGreaterThan(0), size);
         }
+        return score(applianceId).ranked().stream().limit(size).toList();
+    }
 
+    // Not transactional on purpose: no database connection is held while the AI ranking is awaited
+    @Override
+    public RecommendationResult recommend(Long applianceId, int limit, String lang) {
+        int size = clamp(limit);
+        if (applianceId == null) {
+            // Best sellers have no viewed product to relate to, so there is nothing for the AI to rank
+            return new RecommendationResult(bestSellers(applianceRepository.findByStockGreaterThan(0), size), false);
+        }
+        Scored scored = score(applianceId);
+        AiRecommendationRanker.Ranked ranked = aiRanker.rank(scored.viewed(), scored.ranked(), lang);
+        return new RecommendationResult(ranked.items().stream().limit(size).toList(), ranked.pending());
+    }
+
+    private Scored score(Long applianceId) {
+        List<Appliance> available = applianceRepository.findByStockGreaterThan(0);
         Appliance viewed = applianceRepository.findById(applianceId)
                 .orElseThrow(() -> new IllegalArgumentException("Appliance not found: " + applianceId));
         Map<Long, Long> boughtTogether = ordersRepository.countBoughtTogether(applianceId).stream()
                 .collect(Collectors.toMap(ProductCount::applianceId, ProductCount::count));
         long maxBoughtTogether = boughtTogether.values().stream().mapToLong(Long::longValue).max().orElse(0);
 
-        return available.stream()
+        List<Recommendation> ranked = available.stream()
                 .filter(candidate -> !candidate.getId().equals(applianceId))
                 .map(candidate -> RecommendationScorer.score(viewed, candidate,
                         boughtTogether.getOrDefault(candidate.getId(), 0L), maxBoughtTogether))
                 .sorted(BEST_FIRST)
-                .limit(size)
                 .toList();
+        return new Scored(viewed, ranked);
+    }
+
+    private static int clamp(int limit) {
+        return Math.max(1, Math.min(limit, MAX_LIMIT));
     }
 
     private List<Recommendation> bestSellers(List<Appliance> available, int size) {

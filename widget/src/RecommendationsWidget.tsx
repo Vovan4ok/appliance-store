@@ -34,7 +34,7 @@ export function RecommendationsWidget({
 }: RecommendationsWidgetProps) {
   const language = resolveLang(lang);
   const size = clampLimit(limit);
-  const { retry, ...state } = useRecommendations(store, { applianceId, limit: size });
+  const { retry, ...state } = useRecommendations(store, { applianceId, limit: size, lang: language });
   const t = messages(language);
 
   return (

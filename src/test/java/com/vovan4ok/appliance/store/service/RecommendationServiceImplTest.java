@@ -3,9 +3,11 @@ package com.vovan4ok.appliance.store.service;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.Category;
 import com.vovan4ok.appliance.store.model.Recommendation;
+import com.vovan4ok.appliance.store.model.RecommendationResult;
 import com.vovan4ok.appliance.store.repository.ApplianceRepository;
 import com.vovan4ok.appliance.store.repository.OrdersRepository;
 import com.vovan4ok.appliance.store.repository.ProductCount;
+import com.vovan4ok.appliance.store.service.impl.AiRecommendationRanker;
 import com.vovan4ok.appliance.store.service.impl.RecommendationServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +24,11 @@ import static com.vovan4ok.appliance.store.model.RecommendationReason.BEST_SELLE
 import static com.vovan4ok.appliance.store.model.RecommendationReason.BOUGHT_TOGETHER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,6 +39,9 @@ class RecommendationServiceImplTest {
 
     @Mock
     OrdersRepository ordersRepository;
+
+    @Mock
+    AiRecommendationRanker aiRanker;
 
     @InjectMocks
     RecommendationServiceImpl service;
@@ -125,6 +135,52 @@ class RecommendationServiceImplTest {
 
         assertThat(result).extracting(r -> r.appliance().getId()).containsExactly(3L, 5L, 4L);
         assertThat(result.get(1).reasons()).isEmpty();
+    }
+
+    @Test
+    void aiRanking_getsAllCandidatesInScoringOrder_andTheLimitIsAppliedAfterIt() {
+        List<Appliance> many = LongStream.rangeClosed(2, 7)
+                .mapToObj(id -> appliance(id, Category.BIG, "1000.00")).toList();
+        when(applianceRepository.findByStockGreaterThan(0)).thenReturn(many);
+        when(applianceRepository.findById(1L)).thenReturn(Optional.of(viewed));
+        when(ordersRepository.countBoughtTogether(1L)).thenReturn(List.of());
+        // The AI puts the last candidate first and explains it
+        when(aiRanker.rank(eq(viewed), anyList(), eq("uk"))).thenAnswer(call -> {
+            List<Recommendation> scored = call.getArgument(1);
+            List<Recommendation> reordered = new java.util.ArrayList<>(scored);
+            reordered.add(0, reordered.remove(scored.size() - 1).withExplanation("Пасує до перегляданого"));
+            return new AiRecommendationRanker.Ranked(reordered, false);
+        });
+
+        RecommendationResult result = service.recommend(1L, 2, "uk");
+
+        verify(aiRanker).rank(eq(viewed), argThat(list -> list.size() == 6), eq("uk"));
+        assertThat(result.items()).extracting(r -> r.appliance().getId()).containsExactly(7L, 2L);
+        assertThat(result.items().get(0).explanation()).isEqualTo("Пасує до перегляданого");
+        assertThat(result.aiPending()).isFalse();
+    }
+
+    @Test
+    void aiPending_isPassedOn() {
+        when(applianceRepository.findByStockGreaterThan(0)).thenReturn(List.of(appliance(2L, Category.BIG, "1.00")));
+        when(applianceRepository.findById(1L)).thenReturn(Optional.of(viewed));
+        when(ordersRepository.countBoughtTogether(1L)).thenReturn(List.of());
+        when(aiRanker.rank(eq(viewed), anyList(), eq("en")))
+                .thenAnswer(call -> new AiRecommendationRanker.Ranked(call.getArgument(1), true));
+
+        assertThat(service.recommend(1L, 4, "en").aiPending()).isTrue();
+    }
+
+    @Test
+    void bestSellers_areNeverSentToTheAi() {
+        when(applianceRepository.findByStockGreaterThan(0)).thenReturn(List.of(appliance(2L, Category.BIG, "1.00")));
+        when(ordersRepository.countUnitsSold()).thenReturn(List.of(new ProductCount(2L, 3L)));
+
+        RecommendationResult result = service.recommend(null, 4, "en");
+
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.aiPending()).isFalse();
+        verifyNoInteractions(aiRanker);
     }
 
     private static Appliance appliance(Long id, Category category, String price) {

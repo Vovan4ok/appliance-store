@@ -44,6 +44,21 @@ describe('fetchRecommendations', () => {
 
     expect(url?.searchParams.has('applianceId')).toBe(false);
     expect(url?.searchParams.get('limit')).toBe('4');
+    expect(url?.searchParams.get('lang')).toBe('en');
+  });
+
+  it('asks for explanations in the given language', async () => {
+    let url: URL | undefined;
+    server.use(
+      http.get(RECOMMENDATIONS_URL, ({ request }) => {
+        url = new URL(request.url);
+        return HttpResponse.json([]);
+      }),
+    );
+
+    await fetchRecommendations(STORE, { applianceId: 8, lang: 'uk' });
+
+    expect(url?.searchParams.get('lang')).toBe('uk');
   });
 
   it('throws an ApiError with Retry-After on 429', async () => {

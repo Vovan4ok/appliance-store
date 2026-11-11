@@ -24,4 +24,19 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    /**
+     * LLM calls of the AI re-ranking of recommendations. Small on purpose: the per-minute budget caps the calls
+     * anyway, and when the pool and queue are full the request just uses the scoring order.
+     */
+    @Bean
+    public TaskExecutor recommendationTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(10);
+        executor.setThreadNamePrefix("ai-ranking-");
+        executor.initialize();
+        return executor;
+    }
 }

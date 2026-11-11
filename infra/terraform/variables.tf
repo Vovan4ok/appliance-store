@@ -43,6 +43,18 @@ variable "ai_chat_provider" {
   default     = "openai"
 }
 
+variable "recommendations_ai" {
+  description = "AI re-ranking of the widget's recommendations (needs ai_chat_provider = openai). Cached per product and language, capped at recommendations_ai_calls_per_minute LLM calls; any failure falls back to the scoring order"
+  type        = bool
+  default     = true
+}
+
+variable "recommendations_ai_calls_per_minute" {
+  description = "Global cap on LLM calls for the recommendation re-ranking, across all Cloud Run instances"
+  type        = number
+  default     = 6
+}
+
 variable "demo_read_only_accounts" {
   description = "Logins that can see everything but change nothing: the sample accounts, whose passwords are public in the README. Keep your own employee account out of this list"
   type        = list(string)

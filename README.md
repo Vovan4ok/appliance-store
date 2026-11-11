@@ -76,6 +76,21 @@ Any website can show the store's products with two lines ([live demo](https://ap
   approved orders containing both products (relative to the strongest pair), so real customer behaviour outweighs
   product similarity. Without `applianceId`: the best sellers. Each result carries its `score` and reason codes
   (`BOUGHT_TOGETHER`, `SAME_CATEGORY`, `SIMILAR_PRICE`, `SAME_BRAND`, `BEST_SELLER`) that clients translate
+- **AI re-ranking (optional, `RECOMMENDATIONS_AI`):** the deterministic score stays the baseline; an LLM
+  (`AiRecommendationRanker`, Spring AI structured output) re-orders the 8 best-scored candidates for the viewed
+  product and writes a one-line `explanation` per product in the requested `lang`. Built so it can't cost much or
+  break anything:
+  - **cached** per product, language and candidate set (the key is a hash of the prompt, so new orders or stock
+    ask again, and nothing is asked twice)
+  - **global budget** of LLM calls per minute in Redis (`RECOMMENDATIONS_AI_CALLS_PER_MINUTE`, default 6), shared
+    by all instances; above it visitors get the scoring order, never an error
+  - the request **waits at most 3 s** for a new ranking (Cloud Run only gives CPU while a request runs, so it
+    can't be left in the background); a later answer still fills the cache for the next visitor, and the
+    response says `Cache-Control: max-age=30` meanwhile
+  - the model's answer is **untrusted**: unknown ids dropped, duplicates ignored, left-out candidates appended in
+    scoring order, text cleaned and capped; product data is fenced in the prompt and can't break out of it
+  - **any failure gives the scoring order**; `store_recommendations_ai_total{outcome,reason}` shows how each
+    request ended (`cached` / `ranked` / `fallback` with `BUDGET`, `SLOW`, `AI_ERROR`...)
 - **Public but limited:** read-only, slim DTO (no stock counts or descriptions), CORS for `GET` only and without
   credentials (`WIDGET_ALLOWED_ORIGINS`), per-IP rate limit in Redis (`RECOMMENDATIONS_RATE_LIMIT`, 429 with
   `Retry-After`), `Cache-Control: max-age=300`. The rest of the API stays closed to other websites
@@ -89,7 +104,7 @@ Any website can show the store's products with two lines ([live demo](https://ap
   answer never replaces a newer one) and the typed API client
 - **The store uses it itself:** best sellers on the home page, "goes with the item added last" in the cart
 - Served by the Spring app at `/widget/` (built into the image by the Dockerfile's Node stage); checked in CI
-  (types, lint, 46 tests, build) and `npm audit` of what ships
+  (types, lint, 50 tests, build) and `npm audit` of what ships
 
 ### Email Notifications
 - HTML emails on key events: registration welcome, order submitted, order approved, and a password-changed security alert
@@ -191,7 +206,7 @@ The app exports metrics in Prometheus format (Micrometer); `docker compose up` a
 | **Authentication** | Successful and failed logins (web / API), logouts |
 | **JVM and database** | Heap, CPU, HikariCP connections (active / idle / waiting) |
 
-- **Custom business metrics** (`metrics/StoreMetrics`): `store_orders_total{event}`, `store_orders_approved_amount`, `store_ai_descriptions_seconds{outcome,reason}`, `store_ai_rate_limited_total`, `store_auth_logins_total{channel,result}`, `store_auth_logouts_total{channel}`, plus the gauges `store_orders_pending` and `store_appliances_out_of_stock` (read from the database on each scrape). Order events are counted only after their transaction commits, and tags only ever take a few fixed values (never user names or ids), which keeps the number of time series small
+- **Custom business metrics** (`metrics/StoreMetrics`): `store_orders_total{event}`, `store_orders_approved_amount`, `store_ai_descriptions_seconds{outcome,reason}`, `store_ai_rate_limited_total`, `store_recommendations_ai_total{outcome,reason}`, `store_auth_logins_total{channel,result}`, `store_auth_logouts_total{channel}`, plus the gauges `store_orders_pending` and `store_appliances_out_of_stock` (read from the database on each scrape). Order events are counted only after their transaction commits, and tags only ever take a few fixed values (never user names or ids), which keeps the number of time series small
 - Spring AI adds its own metrics (`gen_ai_client_operation_seconds`, `gen_ai_client_token_usage_total`), so OpenAI errors and token spend are visible too
 - **Metrics are never public:** in the `prod` profile `/actuator/health` and `/actuator/prometheus` are served only on the management port **8081**, which Docker Compose publishes on localhost only (Prometheus scrapes it inside the Docker network); port 8080 has no actuator endpoints. In `dev` both are on 8080
 - Dashboards, data source and scrape config live in the repo (`observability/`), so the whole setup comes up with no clicking; change the dashboard JSON and restart Grafana to update it
@@ -359,6 +374,9 @@ widget/                  # Embeddable recommendations widget (React + TypeScript
 | `FORWARD_HEADERS_STRATEGY` | `native` behind a proxy such as Cloud Run: generated URLs use https and the client IP comes from the proxy-appended end of `X-Forwarded-For` (default: `none`) |
 | `RECOMMENDATIONS_RATE_LIMIT` | Calls per IP address and minute to the public recommendations endpoint (default: `60`) |
 | `DEMO_READ_ONLY_ACCOUNTS` | Comma-separated logins that can see everything but change nothing — for a public demo with published sample passwords (default: empty, no restrictions) |
+| `RECOMMENDATIONS_AI` | `true` turns on the AI re-ranking of recommendations; needs `AI_CHAT_PROVIDER=openai` too (default: `false`) |
+| `RECOMMENDATIONS_AI_CALLS_PER_MINUTE` | Global cap on its LLM calls across all instances (default: `6`) |
+| `RECOMMENDATIONS_AI_WAIT` | How long a request waits for a new ranking before answering with the scoring order (default: `3s`) |
 | `WIDGET_ALLOWED_ORIGINS` | Websites allowed to call it from the browser: `*` or a comma-separated list, patterns allowed (default: `*`) |
 | `DB_POOL_SIZE` | Max database connections per instance (default: `10`) |
 | `REDIS_PASSWORD` | Redis password (default: none) |
