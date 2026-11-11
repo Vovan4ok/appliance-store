@@ -83,7 +83,7 @@ services:
   # The single-binary dev server (SQLite file in a volume) with its Web UI; production would run a Temporal
   # cluster or Temporal Cloud instead, the app only needs TEMPORAL_ADDRESS
   temporal:
-    image: temporalio/temporal:1.9.1
+    image: temporalio/temporal:1.10.0
     command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/home/temporal/temporal.db"]
     ports:
       - "127.0.0.1:7233:7233"   # gRPC API (the app connects here inside the Docker network)

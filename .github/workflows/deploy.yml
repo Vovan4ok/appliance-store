@@ -6,7 +6,8 @@ name: Deploy
 on:
   push:
     branches: [ master ]
-    paths-ignore: [ '**.md', 'infra/**', 'observability/**', '.github/dependabot.yml' ]
+    # Not part of the image: docs, Terraform, and the local Docker Compose stack (its own Dependabot PRs)
+    paths-ignore: [ '**.md', 'infra/**', 'observability/**', 'docker-compose.yml', '.github/dependabot.yml' ]
   workflow_dispatch:
 
 # One deployment at a time; a newer push waits instead of cancelling a roll-out half way
