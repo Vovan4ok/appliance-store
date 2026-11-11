@@ -16,6 +16,7 @@
 	<properties>
 		<java.version>17</java.version>
 		<temporal.version>1.40.0</temporal.version>
+		<spock.version>2.5-groovy-5.0</spock.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -187,6 +188,20 @@
 			<version>${temporal.version}</version>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- Spock: specifications in Groovy (src/test/groovy, *Spec), run by JUnit next to the Java tests.
+		     Groovy's version comes from Spring Boot; Spock must be the build for the same Groovy major -->
+		<dependency>
+			<groupId>org.apache.groovy</groupId>
+			<artifactId>groovy</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.spockframework</groupId>
+			<artifactId>spock-core</artifactId>
+			<version>${spock.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -201,6 +216,32 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+				</configuration>
+			</plugin>
+			<!-- Compiles the Groovy specifications in src/test/groovy -->
+			<plugin>
+				<groupId>org.codehaus.gmavenplus</groupId>
+				<artifactId>gmavenplus-plugin</artifactId>
+				<version>5.1.0</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>addTestSources</goal>
+							<goal>compileTests</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- Surefire's defaults only pick up *Test/*Tests: add the Spock *Spec classes -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<includes>
+						<include>**/*Test.java</include>
+						<include>**/*Tests.java</include>
+						<include>**/*Spec.java</include>
+					</includes>
 				</configuration>
 			</plugin>
 			<plugin>

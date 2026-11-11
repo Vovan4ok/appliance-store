@@ -23,7 +23,7 @@ A full-stack e-commerce web application for managing and selling home appliances
 - **Workflows:** Temporal (Java SDK) — durable order-approval workflow with reminder and expiry timers
 - **Containerization:** Docker, Docker Compose (app, PostgreSQL, Redis, Temporal, Mailpit, Prometheus, Grafana)
 - **Observability:** Micrometer metrics (HTTP, JVM, database pool, Redis, Spring AI + custom business metrics) scraped by Prometheus, provisioned Grafana dashboard; Actuator health check
-- **Testing:** JUnit 5, Mockito, MockMvc, Testcontainers (real Redis in Docker)
+- **Testing:** JUnit 5, Mockito, MockMvc, Spock (Groovy specifications with data tables), Testcontainers (real Redis in Docker)
 - **Build:** Maven
 - **Code style:** Checkstyle (Google-inspired ruleset — `checkstyle.xml`)
 - **CI:** GitHub Actions
@@ -237,6 +237,8 @@ No Maven install needed — the project ships with the Maven wrapper (`mvnw` / `
 
 > On Windows PowerShell use `.\mvnw.cmd` instead of `./mvnw`.
 
+Most tests are JUnit 5 + Mockito. The order lifecycle and the recommendation scoring rule are also written as [Spock](https://spockframework.org/) specifications (`src/test/groovy`, `*Spec`): given-when-then blocks with data tables, one row per case. They run in the same `./mvnw test`.
+
 The Redis integration tests start a real Redis with [Testcontainers](https://testcontainers.com/), so they need Docker; without Docker they are skipped and everything else still runs.
 
 The widget (`widget/`) needs Node.js 24+:
@@ -338,7 +340,8 @@ src/
 │   ├── messages/        # i18n message files (EN, UK)
 │   ├── templates/       # Thymeleaf HTML templates (incl. email/ templates)
 │   └── *.sql            # Dev seed data files
-└── test/                # Unit and controller tests (Mockito, MockMvc)
+├── test/java/          # Unit and controller tests (JUnit 5, Mockito, MockMvc)
+└── test/groovy/        # Spock specifications (order lifecycle, recommendation scoring)
 widget/                  # Embeddable recommendations widget (React + TypeScript, Vite)
 ├── src/                 # Custom element, React components, hook, API client, i18n, tests
 └── public/demo.html     # Demo page, served at /widget/demo.html
