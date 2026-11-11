@@ -161,7 +161,7 @@ public class OrdersController {
         return "redirect:/orders/" + id + "/edit";
     }
 
-    @GetMapping("/{id}/rows/{rowId}/remove")
+    @PostMapping("/{id}/rows/{rowId}/remove")
     public String removeRow(@PathVariable Long id, @PathVariable Long rowId) {
         log.info("Removing row id={} from order id={}", rowId, id);
         orderService.removeOrderRow(rowId);
@@ -171,14 +171,14 @@ public class OrdersController {
         return "redirect:/orders/" + id + "/edit";
     }
 
-    @GetMapping("/{id}/delete")
+    @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id) {
         log.info("Deleting order id={}", id);
         orderService.delete(id);
         return "redirect:/orders";
     }
 
-    @GetMapping("/{id}/approved")
+    @PostMapping("/{id}/approved")
     public String approve(@PathVariable Long id, Model model) {
         log.info("Approving order id={}", id);
         try {
@@ -197,7 +197,7 @@ public class OrdersController {
         }
     }
 
-    @GetMapping("/{id}/unapproved")
+    @PostMapping("/{id}/unapproved")
     public String unapprove(@PathVariable Long id) {
         log.info("Unapproving order id={}", id);
         orderApprovalProcess.unapprove(id);

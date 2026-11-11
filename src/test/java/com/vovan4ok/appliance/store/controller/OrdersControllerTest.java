@@ -188,7 +188,7 @@ class OrdersControllerTest {
     void removeRow_orderStillExists_redirectsToEditPage() throws Exception {
         when(orderService.findById(1L)).thenReturn(Optional.of(buildOrder(1L)));
 
-        mockMvc.perform(get("/orders/1/rows/3/remove"))
+        mockMvc.perform(post("/orders/1/rows/3/remove").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/orders/1/edit"));
 
@@ -199,7 +199,7 @@ class OrdersControllerTest {
     void removeRow_lastRow_redirectsToList() throws Exception {
         when(orderService.findById(1L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/orders/1/rows/3/remove"))
+        mockMvc.perform(post("/orders/1/rows/3/remove").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/orders"));
 
@@ -208,7 +208,7 @@ class OrdersControllerTest {
 
     @Test
     void delete_redirectsToList() throws Exception {
-        mockMvc.perform(get("/orders/1/delete"))
+        mockMvc.perform(post("/orders/1/delete").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/orders"));
 
@@ -217,7 +217,7 @@ class OrdersControllerTest {
 
     @Test
     void approve_redirectsToList() throws Exception {
-        mockMvc.perform(get("/orders/1/approved"))
+        mockMvc.perform(post("/orders/1/approved").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/orders"));
 
@@ -226,10 +226,20 @@ class OrdersControllerTest {
 
     @Test
     void unapprove_redirectsToList() throws Exception {
-        mockMvc.perform(get("/orders/1/unapproved"))
+        mockMvc.perform(post("/orders/1/unapproved").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/orders"));
 
         verify(orderApprovalProcess).unapprove(eq(1L));
+    }
+
+    @Test
+    void plainLink_cannotApproveOrDelete() throws Exception {
+        // A GET is what a link on another website sends; only the POST forms may change orders
+        mockMvc.perform(get("/orders/1/approved")).andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(get("/orders/1/delete")).andExpect(status().isMethodNotAllowed());
+
+        verify(orderApprovalProcess, never()).approve(any());
+        verify(orderService, never()).delete(any());
     }
 }

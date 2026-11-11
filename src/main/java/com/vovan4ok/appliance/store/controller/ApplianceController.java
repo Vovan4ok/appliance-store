@@ -157,7 +157,7 @@ public class ApplianceController {
         return "redirect:/appliances";
     }
 
-    @GetMapping("/{id}/delete")
+    @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id) {
         log.info("Deleting appliance id={}", id);
         applianceService.delete(id);

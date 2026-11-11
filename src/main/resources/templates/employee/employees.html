@@ -50,12 +50,12 @@
                     <td class="d-none d-xl-table-cell text-muted small" th:text="${employee.phone != null} ? ${employee.phone} : '—'"></td>
                     <td class="d-none d-xl-table-cell text-muted small" th:text="${employee.dateOfBirth != null} ? ${#temporals.format(employee.dateOfBirth, 'dd.MM.yyyy')} : '—'"></td>
                     <td>
-                        <a th:href="@{/employees/__${employee.id}__/delete}"
-                           class="btn btn-sm btn-outline-danger"
-                           th:title="#{btn.delete}"
-                           onclick="return confirm('Delete this employee?')">
-                            <i class="bi bi-trash"></i>
-                        </a>
+                        <form th:action="@{/employees/__${employee.id}__/delete}" method="post"
+                              class="d-inline m-0" onsubmit="return confirm('Delete this employee?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" th:title="#{btn.delete}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(employees)}">

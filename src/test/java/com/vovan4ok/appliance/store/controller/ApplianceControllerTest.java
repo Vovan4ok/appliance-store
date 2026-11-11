@@ -203,7 +203,7 @@ class ApplianceControllerTest {
 
     @Test
     void delete_redirectsToList() throws Exception {
-        mockMvc.perform(get("/appliances/1/delete"))
+        mockMvc.perform(post("/appliances/1/delete").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/appliances"));
 

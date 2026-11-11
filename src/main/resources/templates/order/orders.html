@@ -70,27 +70,29 @@
                                th:title="#{btn.edit}">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <a sec:authorize="hasRole('EMPLOYEE')"
-                               th:if="${order.approved == true}"
-                               th:href="@{/orders/__${order.id}__/unapproved}"
-                               class="btn btn-sm btn-outline-warning"
-                               th:title="#{order.btn.unapprove}">
-                                <i class="bi bi-x-circle"></i>
-                            </a>
-                            <a sec:authorize="hasRole('EMPLOYEE')"
-                               th:if="${order.approved != true}"
-                               th:href="@{/orders/__${order.id}__/approved}"
-                               class="btn btn-sm btn-outline-success"
-                               th:title="#{order.btn.approve}">
-                                <i class="bi bi-check-circle"></i>
-                            </a>
-                            <a sec:authorize="hasRole('EMPLOYEE')"
-                               th:href="@{/orders/__${order.id}__/delete}"
-                               class="btn btn-sm btn-outline-danger"
-                               th:title="#{btn.delete}"
-                               onclick="return confirm('Delete this order?')">
-                                <i class="bi bi-trash"></i>
-                            </a>
+                            <form sec:authorize="hasRole('EMPLOYEE')"
+                                  th:if="${order.approved == true}"
+                                  th:action="@{/orders/__${order.id}__/unapproved}" method="post" class="d-inline m-0">
+                                <button type="submit" class="btn btn-sm btn-outline-warning"
+                                        th:title="#{order.btn.unapprove}">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </form>
+                            <form sec:authorize="hasRole('EMPLOYEE')"
+                                  th:if="${order.approved != true}"
+                                  th:action="@{/orders/__${order.id}__/approved}" method="post" class="d-inline m-0">
+                                <button type="submit" class="btn btn-sm btn-outline-success"
+                                        th:title="#{order.btn.approve}">
+                                    <i class="bi bi-check-circle"></i>
+                                </button>
+                            </form>
+                            <form sec:authorize="hasRole('EMPLOYEE')"
+                                  th:action="@{/orders/__${order.id}__/delete}" method="post"
+                                  class="d-inline m-0" onsubmit="return confirm('Delete this order?')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" th:title="#{btn.delete}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
                         </div>
                     </td>
                 </tr>

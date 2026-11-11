@@ -31,13 +31,13 @@
                 <i class="bi bi-plus-circle me-1"></i>
                 <span th:text="#{order.edit.add.appliance}">Add Appliance</span>
             </a>
-            <a th:href="@{/orders/__${order.id}__/delete}"
-               class="btn btn-outline-danger"
-               th:title="#{order.btn.delete}"
-               onclick="return confirm('Cancel and delete this order?')">
-                <i class="bi bi-trash me-1"></i>
-                <span th:text="#{order.btn.delete}">Cancel Order</span>
-            </a>
+            <form th:action="@{/orders/__${order.id}__/delete}" method="post"
+                  class="d-inline m-0" onsubmit="return confirm('Cancel and delete this order?')">
+                <button type="submit" class="btn btn-outline-danger" th:title="#{order.btn.delete}">
+                    <i class="bi bi-trash me-1"></i>
+                    <span th:text="#{order.btn.delete}">Cancel Order</span>
+                </button>
+            </form>
         </div>
     </div>
 
@@ -147,13 +147,14 @@
                         <span th:text="${row.amount.multiply(T(java.math.BigDecimal).valueOf(row.number))}"></span> UAH
                     </td>
                     <td>
-                        <a th:unless="${locked}"
-                           th:href="@{/orders/__${order.id}__/rows/__${row.id}__/remove}"
-                           class="btn btn-sm btn-outline-danger"
-                           th:title="#{order.row.remove}"
-                           onclick="return confirm('Remove this item?')">
-                            <i class="bi bi-trash"></i>
-                        </a>
+                        <form th:unless="${locked}"
+                              th:action="@{/orders/__${order.id}__/rows/__${row.id}__/remove}" method="post"
+                              class="d-inline m-0" onsubmit="return confirm('Remove this item?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                    th:title="#{order.row.remove}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 </tbody>

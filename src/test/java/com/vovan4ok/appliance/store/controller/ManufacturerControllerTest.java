@@ -160,7 +160,7 @@ class ManufacturerControllerTest {
 
     @Test
     void delete_redirectsToList() throws Exception {
-        mockMvc.perform(get("/manufacturers/1/delete"))
+        mockMvc.perform(post("/manufacturers/1/delete").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/manufacturers"));
 
@@ -172,7 +172,7 @@ class ManufacturerControllerTest {
         doThrow(new DataIntegrityViolationException("FK constraint"))
                 .when(manufacturerService).delete(eq(1L));
 
-        mockMvc.perform(get("/manufacturers/1/delete"))
+        mockMvc.perform(post("/manufacturers/1/delete").with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(view().name("error"))
                 .andExpect(model().attribute("status", 409));

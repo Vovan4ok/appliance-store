@@ -13,12 +13,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * Stops every change made with a read-only demo account ({@link ReadOnlyDemoAccounts}) before it reaches a
- * controller. A change is any request that is not GET/HEAD/OPTIONS, plus the GET links that change data
- * (delete, remove, approve, unapprove). Logging in and out stays possible.
+ * controller. A change is any request that is not GET/HEAD/OPTIONS: no GET handler changes data
+ * (ControllerGetMappingsTest keeps it that way). Logging in and out stays possible.
  *
  * <p>REST API: 403 with a JSON error. Pages: back to the page the user came from, with {@code ?readOnlyDemo}
  * so it shows a banner.
@@ -33,9 +32,6 @@ public class ReadOnlyDemoFilter extends OncePerRequestFilter {
     private static final Set<String> ALWAYS_ALLOWED = Set.of(
             "/auth/login", "/auth/logout", "/api/v1/auth/login", "/api/v1/auth/logout");
 
-    // GET links that change data: /appliances/5/delete, /orders/3/rows/7/remove, /orders/3/approved ...
-    private static final Pattern CHANGING_GET = Pattern.compile("^/.+/(delete|remove|approved|unapproved)/?$");
-
     private final ReadOnlyDemoAccounts accounts;
 
     public ReadOnlyDemoFilter(ReadOnlyDemoAccounts accounts) {
@@ -49,7 +45,7 @@ public class ReadOnlyDemoFilter extends OncePerRequestFilter {
         String path = request.getRequestURI().substring(request.getContextPath().length());
 
         if (auth == null || !auth.isAuthenticated() || !accounts.isReadOnly(auth.getName())
-                || !changesData(request.getMethod(), path) || ALWAYS_ALLOWED.contains(path)) {
+                || !changesData(request.getMethod()) || ALWAYS_ALLOWED.contains(path)) {
             chain.doFilter(request, response);
             return;
         }
@@ -65,8 +61,8 @@ public class ReadOnlyDemoFilter extends OncePerRequestFilter {
         }
     }
 
-    static boolean changesData(String method, String path) {
-        return !READ_METHODS.contains(method) || CHANGING_GET.matcher(path).matches();
+    static boolean changesData(String method) {
+        return !READ_METHODS.contains(method);
     }
 
     /** The page the user came from (only if it is on this site), else the home page, with the banner flag. */

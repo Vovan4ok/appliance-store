@@ -65,7 +65,7 @@ public class EmployeeController {
         return "redirect:/employees";
     }
 
-    @GetMapping("/{id}/delete")
+    @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id) {
         log.info("Deleting employee id={}", id);
         employeeService.delete(id);

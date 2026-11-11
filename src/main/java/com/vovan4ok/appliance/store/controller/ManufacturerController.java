@@ -119,7 +119,7 @@ public class ManufacturerController {
         return "redirect:/manufacturers/" + id;
     }
 
-    @GetMapping("/{id}/delete")
+    @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id) {
         log.info("Deleting manufacturer id={}", id);
         manufacturerService.delete(id);

@@ -41,7 +41,7 @@ class GlobalExceptionHandlerTest {
         doThrow(new DataIntegrityViolationException("FK constraint violated"))
                 .when(manufacturerService).delete(eq(1L));
 
-        mockMvc.perform(get("/manufacturers/1/delete"))
+        mockMvc.perform(post("/manufacturers/1/delete").with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(view().name("error"))
                 .andExpect(model().attribute("status", 409))

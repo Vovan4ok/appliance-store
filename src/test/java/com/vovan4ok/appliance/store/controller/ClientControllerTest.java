@@ -144,7 +144,7 @@ class ClientControllerTest {
 
     @Test
     void delete_redirectsToList() throws Exception {
-        mockMvc.perform(get("/clients/1/delete"))
+        mockMvc.perform(post("/clients/1/delete").with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/clients"));
 

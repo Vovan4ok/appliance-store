@@ -269,12 +269,13 @@
                                th:title="#{btn.edit}">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <a th:href="@{/appliances/__${appliance.id}__/delete}"
-                               class="btn btn-sm btn-outline-danger"
-                               th:title="#{btn.delete}"
-                               onclick="return confirm('Delete this appliance?')">
-                                <i class="bi bi-trash"></i>
-                            </a>
+                            <form th:action="@{/appliances/__${appliance.id}__/delete}" method="post"
+                                  class="d-inline m-0" onsubmit="return confirm('Delete this appliance?')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        th:title="#{btn.delete}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
                         </div>
                     </div>
 

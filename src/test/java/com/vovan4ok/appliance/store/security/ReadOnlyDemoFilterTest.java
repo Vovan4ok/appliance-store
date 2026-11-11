@@ -32,24 +32,11 @@ class ReadOnlyDemoFilterTest {
         SecurityContextHolder.clearContext();
     }
 
-    @ParameterizedTest(name = "{0} {1} changes data: {2}")
-    @CsvSource({
-            "POST,   /profile/change-password,     true",
-            "PUT,    /api/v1/appliances/5,         true",
-            "DELETE, /api/v1/manufacturers/2,      true",
-            "PATCH,  /anything,                    true",
-            "GET,    /appliances/5/delete,         true",
-            "GET,    /orders/3/rows/7/remove,      true",
-            "GET,    /orders/3/approved,           true",
-            "GET,    /orders/3/unapproved,         true",
-            "GET,    /orders/3/edit,               false",
-            "GET,    /appliances,                  false",
-            "GET,    /api/v1/recommendations,      false",
-            "HEAD,   /,                            false",
-            "OPTIONS, /api/v1/appliances,          false",
-    })
-    void changesData(String method, String path, boolean expected) {
-        assertThat(ReadOnlyDemoFilter.changesData(method, path)).isEqualTo(expected);
+    @ParameterizedTest(name = "{0} changes data: {1}")
+    @CsvSource({"POST, true", "PUT, true", "DELETE, true", "PATCH, true",
+            "GET, false", "HEAD, false", "OPTIONS, false"})
+    void changesData(String method, boolean expected) {
+        assertThat(ReadOnlyDemoFilter.changesData(method)).isEqualTo(expected);
     }
 
     @Test
@@ -67,7 +54,7 @@ class ReadOnlyDemoFilterTest {
     @Test
     void demoAccount_keepsTheQueryOfThePreviousPage() throws Exception {
         loginAs("phobos@gmail.com");
-        MockHttpServletRequest request = request("GET", "/appliances/5/delete");
+        MockHttpServletRequest request = request("POST", "/appliances/5/delete");
         request.addHeader("Referer", "http://localhost/appliances?page=2&sortBy=price");
 
         filter.doFilter(request, response, chain);
@@ -140,7 +127,7 @@ class ReadOnlyDemoFilterTest {
     void otherAccounts_areNotRestricted() throws Exception {
         loginAs("owner@example.com");
 
-        filter.doFilter(request("GET", "/orders/3/approved"), response, chain);
+        filter.doFilter(request("POST", "/orders/3/approved"), response, chain);
 
         verify(chain).doFilter(any(), any());
     }
