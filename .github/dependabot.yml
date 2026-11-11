@@ -26,6 +26,32 @@ updates:
           - patch
     # Major versions still come, but each as its own PR, so breaking changes are reviewed one at a time
 
+  # The embeddable widget (widget/package.json): React, Vite, TypeScript, test and lint tools
+  - package-ecosystem: npm
+    directory: "/widget"
+    schedule:
+      interval: weekly
+      day: monday
+    # New releases wait a week before a PR is opened: time for a bad or malicious release to be pulled
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps(widget)"
+    groups:
+      # React and its types move together
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      # Everything else that is not a major version jump, in one PR
+      widget-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
   # GitHub Actions versions used in .github/workflows
   - package-ecosystem: github-actions
     directory: "/"

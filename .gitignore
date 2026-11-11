@@ -48,3 +48,6 @@ infra/terraform/.terraform/
 crash.log
 # Personal Terraform values (e.g. the alert email address)
 infra/terraform/*.auto.tfvars
+
+### Widget build output (npm run build in widget/, or the Docker build) ###
+src/main/resources/static/widget/

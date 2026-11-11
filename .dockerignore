@@ -4,3 +4,9 @@
 !mvnw
 !pom.xml
 !src/
+!widget/
+# Built inside the image instead; local copies would be stale or for the wrong OS
+widget/node_modules/
+widget/dist/
+widget/coverage/
+src/main/resources/static/widget/

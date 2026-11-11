@@ -3,6 +3,7 @@ package com.vovan4ok.appliance.store.controller;
 import com.vovan4ok.appliance.store.model.Appliance;
 import com.vovan4ok.appliance.store.model.Category;
 import com.vovan4ok.appliance.store.model.Client;
+import com.vovan4ok.appliance.store.model.OrderRow;
 import com.vovan4ok.appliance.store.model.Orders;
 import com.vovan4ok.appliance.store.model.PowerType;
 import com.vovan4ok.appliance.store.model.dto.ApplianceDto;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 
 @Slf4j
 @Controller
@@ -106,6 +108,13 @@ public class ShopController {
         if (auth != null) {
             Orders order = orderService.findPendingByClientEmail(auth.getName()).orElse(null);
             model.addAttribute("order", order);
+            // The recommendations widget suggests products that go with the item added last
+            if (order != null) {
+                order.getOrderRowSet().stream()
+                        .max(Comparator.comparing(OrderRow::getId, Comparator.nullsFirst(Comparator.naturalOrder())))
+                        .map(row -> row.getAppliance().getId())
+                        .ifPresent(id -> model.addAttribute("recommendFor", id));
+            }
         }
         return "shop/cart";
     }

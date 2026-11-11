@@ -2,7 +2,7 @@ package com.vovan4ok.appliance.store.service.impl;
 
 import com.vovan4ok.appliance.store.MutableClock;
 import com.vovan4ok.appliance.store.exception.RateLimitExceededException;
-import com.vovan4ok.appliance.store.service.AiRateLimiter;
+import com.vovan4ok.appliance.store.service.RateLimiter;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -11,11 +11,11 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class InMemoryAiRateLimiterTest {
+class InMemoryRateLimiterTest {
 
     // 20 seconds into a minute window
     private final MutableClock clock = new MutableClock(Instant.parse("2026-11-04T10:00:20Z"));
-    private final AiRateLimiter limiter = new InMemoryAiRateLimiter(3, clock);
+    private final RateLimiter limiter = new InMemoryRateLimiter(3, clock);
 
     @Test
     void requestsUpToTheLimit_areAllowed() {
@@ -38,7 +38,7 @@ class InMemoryAiRateLimiterTest {
     }
 
     @Test
-    void limit_isPerUser() {
+    void limit_isPerKey() {
         for (int i = 0; i < 3; i++) {
             limiter.acquire("phobos@gmail.com");
         }

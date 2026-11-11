@@ -5,9 +5,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
+
 public interface ApplianceRepository extends JpaRepository<Appliance, Long>, JpaSpecificationExecutor<Appliance> {
 
     // A missing stock value counts as out of stock, like everywhere else in the shop
     @Query("select count(a) from Appliance a where a.stock is null or a.stock <= 0")
     long countOutOfStock();
+
+    // Everything that can be bought right now (recommendations never suggest an out-of-stock product)
+    List<Appliance> findByStockGreaterThan(int stock);
 }

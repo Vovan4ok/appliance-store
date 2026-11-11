@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @DataRedisTest
 @Testcontainers(disabledWithoutDocker = true)
-class RedisAiRateLimiterTest {
+class RedisRateLimiterTest {
 
     @Container
     @ServiceConnection(name = "redis")
@@ -39,12 +39,12 @@ class RedisAiRateLimiterTest {
 
     // 20 seconds into a minute window
     MutableClock clock = new MutableClock(Instant.parse("2026-11-04T10:00:20Z"));
-    RedisAiRateLimiter limiter;
+    RedisRateLimiter limiter;
 
     @BeforeEach
     void setUp() {
         template.getConnectionFactory().getConnection().serverCommands().flushAll();
-        limiter = new RedisAiRateLimiter(template, 3, clock);
+        limiter = new RedisRateLimiter(template, "ai", 3, clock);
     }
 
     @Test
@@ -60,7 +60,7 @@ class RedisAiRateLimiterTest {
 
     @Test
     void counter_isSharedThroughRedis_soAllAppInstancesSeeTheSameLimit() {
-        RedisAiRateLimiter otherInstance = new RedisAiRateLimiter(template, 3, clock);
+        RedisRateLimiter otherInstance = new RedisRateLimiter(template, "ai", 3, clock);
         limiter.acquire("phobos@gmail.com");
         otherInstance.acquire("phobos@gmail.com");
         limiter.acquire("phobos@gmail.com");
@@ -81,10 +81,20 @@ class RedisAiRateLimiterTest {
     }
 
     @Test
+    void scopes_haveSeparateCounters_forTheSameKey() {
+        RedisRateLimiter recommendations = new RedisRateLimiter(template, "recommendations", 3, clock);
+        for (int i = 0; i < 3; i++) {
+            limiter.acquire("203.0.113.7");
+        }
+
+        assertThatCode(() -> recommendations.acquire("203.0.113.7")).doesNotThrowAnyException();
+    }
+
+    @Test
     void windowKey_getsATtl_soRedisCleansItUp() {
         limiter.acquire("phobos@gmail.com");
 
-        String key = template.keys(RedisAiRateLimiter.KEY_PREFIX + "*").iterator().next();
+        String key = template.keys(RedisRateLimiter.KEY_PREFIX + "*").iterator().next();
         assertThat(template.getExpire(key)).isBetween(60L, 70L);
     }
 
@@ -93,7 +103,7 @@ class RedisAiRateLimiterTest {
         LettuceConnectionFactory deadFactory = new LettuceConnectionFactory(
                 new RedisStandaloneConfiguration("localhost", 1));
         deadFactory.afterPropertiesSet();
-        RedisAiRateLimiter unavailable = new RedisAiRateLimiter(new StringRedisTemplate(deadFactory), 1, clock);
+        RedisRateLimiter unavailable = new RedisRateLimiter(new StringRedisTemplate(deadFactory), "ai", 1, clock);
 
         assertThatCode(() -> {
             unavailable.acquire("phobos@gmail.com");

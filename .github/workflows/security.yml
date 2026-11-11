@@ -75,3 +75,19 @@ jobs:
           name: dependency-check-report
           path: target/dependency-check-report.html
           retention-days: 30
+
+  npm-audit:
+    name: npm audit (widget)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: widget
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+      # Only what ships in store-widget.js (React); the build and lint tools never reach a browser.
+      # Reads the lockfile only, nothing is installed
+      - name: Audit runtime dependencies (fails on moderate and above)
+        run: npm audit --omit=dev --audit-level=moderate

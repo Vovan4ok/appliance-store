@@ -12,7 +12,10 @@ locals {
     TEMPORAL_ADDRESS         = "${google_compute_address.worker.address}:7233"
     TEMPORAL_WORKER_ENABLED  = "false" # the VM runs the worker; Cloud Run only starts/approves workflows
     COOKIE_SECURE            = "true"
-    FORWARD_HEADERS_STRATEGY = "framework"
+    # Tomcat's RemoteIpValve: trusts X-Forwarded-For/-Proto only from internal addresses (Cloud Run's front end
+    # connects from 169.254.x.x) and takes the client IP from the RIGHT end of X-Forwarded-For, which Google
+    # appends. "framework" took the LEFT end, which any client can fake (bypassing per-IP rate limits)
+    FORWARD_HEADERS_STRATEGY = "native"
     UPLOAD_DIR               = "/app/uploads"
     MAIL_HOST                = "smtp-relay.brevo.com"
     MAIL_PORT                = "587"

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recommendations widget – demo</title>
+    <style>
+      :root { color-scheme: light; --line: #e5e7eb; --muted: #6b7280; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #111827; background: #f9fafb; }
+      main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+      h1 { margin: 0 0 4px; font-size: 1.75rem; }
+      .lead { margin: 0 0 24px; color: var(--muted); }
+      .panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+      .panel h2 { margin: 0 0 12px; font-size: 1rem; }
+      .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; }
+      label { display: grid; gap: 4px; font-size: 0.8125rem; color: var(--muted); }
+      input, select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; min-width: 120px; }
+      pre { margin: 0; padding: 12px; overflow-x: auto; background: #111827; color: #e5e7eb; border-radius: 8px; font-size: 0.8125rem; }
+      button { font: inherit; padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; }
+      #log { margin: 0; padding-left: 20px; color: var(--muted); font-size: 0.875rem; }
+      .warm { --asw-accent: #b45309; --asw-radius: 4px; --asw-card-bg: #fffbeb; --asw-border: #fde68a; }
+      .dark { --asw-accent: #93c5fd; --asw-text: #f3f4f6; --asw-muted: #9ca3af; --asw-card-bg: #1f2937; --asw-border: #374151; --asw-placeholder: #374151; }
+      .stage { padding: 16px; border-radius: 12px; }
+      .stage.dark-bg { background: #111827; }
+      table { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
+      th, td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+      code { font-size: 0.8125rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Recommended products widget</h1>
+      <p class="lead">
+        One script tag and one element on any page; React + TypeScript inside a web component.
+        <a href="/">Back to the store</a>
+      </p>
+
+      <section class="panel">
+        <h2>Try it</h2>
+        <div class="controls">
+          <label>Product id (empty = best sellers)
+            <input id="applianceId" type="number" min="1" value="8" />
+          </label>
+          <label>How many
+            <input id="limit" type="number" min="1" max="12" value="4" />
+          </label>
+          <label>Language
+            <select id="lang"><option value="en">English</option><option value="uk">Українська</option></select>
+          </label>
+          <label>Theme
+            <select id="theme">
+              <option value="">Default</option>
+              <option value="warm">Warm (CSS variables)</option>
+              <option value="dark">Dark (CSS variables)</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div id="stage" class="stage">
+          <appliance-recommendations id="widget" appliance-id="8" limit="4"></appliance-recommendations>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Embed it on your page</h2>
+        <pre id="snippet"></pre>
+        <p><button id="copy" type="button">Copy</button></p>
+      </section>
+
+      <section class="panel">
+        <h2>Attributes</h2>
+        <table>
+          <tr><th>appliance-id</th><td>The product being viewed. Without it: the store's best sellers.</td></tr>
+          <tr><th>limit</th><td>1 to 12, default 4.</td></tr>
+          <tr><th>lang</th><td><code>en</code> or <code>uk</code>; default: the page's <code>&lt;html lang&gt;</code>.</td></tr>
+          <tr><th>heading</th><td>Replaces the default heading.</td></tr>
+          <tr><th>link-target</th><td><code>_blank</code> (default) or <code>_self</code>.</td></tr>
+          <tr><th>store-url</th><td>Only if the script is not loaded from the store itself.</td></tr>
+        </table>
+        <p>
+          Styling: <code>--asw-accent</code>, <code>--asw-text</code>, <code>--asw-muted</code>,
+          <code>--asw-card-bg</code>, <code>--asw-border</code>, <code>--asw-radius</code>,
+          <code>--asw-font</code>, <code>--asw-card-min-width</code>.
+          Event: <code>recommendation-select</code> (<code>event.detail</code> is the product).
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>Events</h2>
+        <ol id="log"><li>Open a product to see the <code>recommendation-select</code> event.</li></ol>
+      </section>
+    </main>
+
+    <script src="store-widget.js"></script>
+    <script>
+      const widget = document.getElementById('widget');
+      const stage = document.getElementById('stage');
+      const inputs = ['applianceId', 'limit', 'lang', 'theme'].map((id) => document.getElementById(id));
+      const scriptUrl = new URL('store-widget.js', location.href).href;
+
+      function update() {
+        const [applianceId, limit, lang, theme] = inputs.map((input) => input.value.trim());
+        applianceId ? widget.setAttribute('appliance-id', applianceId) : widget.removeAttribute('appliance-id');
+        widget.setAttribute('limit', limit || '4');
+        widget.setAttribute('lang', lang);
+        widget.className = theme;
+        stage.classList.toggle('dark-bg', theme === 'dark');
+
+        const attributes = [applianceId && `appliance-id="${applianceId}"`, `limit="${limit || 4}"`, `lang="${lang}"`]
+          .filter(Boolean).join(' ');
+        document.getElementById('snippet').textContent =
+          `<script src="${scriptUrl}"></` + `script>\n<appliance-recommendations ${attributes}></appliance-recommendations>`;
+      }
+
+      inputs.forEach((input) => input.addEventListener('input', update));
+      update();
+
+      document.getElementById('copy').addEventListener('click', async (event) => {
+        await navigator.clipboard.writeText(document.getElementById('snippet').textContent);
+        event.target.textContent = 'Copied';
+        setTimeout(() => { event.target.textContent = 'Copy'; }, 1500);
+      });
+
+      document.addEventListener('recommendation-select', (event) => {
+        const item = document.createElement('li');
+        item.textContent = `recommendation-select: #${event.detail.id} ${event.detail.name} (score ${event.detail.score})`;
+        document.getElementById('log').prepend(item);
+      });
+    </script>
+  </body>
+</html>

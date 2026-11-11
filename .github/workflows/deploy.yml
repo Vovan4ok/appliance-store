@@ -39,6 +39,15 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
       - run: ./mvnw -B -ntp verify
+      # The widget is built into the image too: deploy only if its checks pass as well
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: 'npm'
+          cache-dependency-path: widget/package-lock.json
+      - name: Widget checks (types, lint, tests, build)
+        working-directory: widget
+        run: npm ci && npm run check
 
   deploy:
     name: Build and deploy
@@ -104,6 +113,13 @@ jobs:
             echo "$path -> $code"
             [ "$code" = 200 ] || exit 1
           done
+          # The embeddable widget and its public API
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$url/widget/store-widget.js")
+          echo "/widget/store-widget.js -> $code"
+          [ "$code" = 200 ] || exit 1
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://example.com' "$url/api/v1/recommendations")
+          echo "/api/v1/recommendations -> $code"
+          [ "$code" = 200 ] || exit 1
           # Management endpoints must stay private
           code=$(curl -s -o /dev/null -w '%{http_code}' "$url/actuator/health")
           echo "/actuator/health -> $code (expected 404)"
